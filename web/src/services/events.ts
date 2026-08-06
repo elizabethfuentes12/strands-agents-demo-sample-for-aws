@@ -151,8 +151,8 @@ export class DemoSession {
     }
   }
 
-  async send(prompt: string): Promise<void> {
-    await this.publish({ prompt })
+  async send(prompt: string, modelId?: string): Promise<void> {
+    await this.publish(modelId ? { prompt, model: modelId } : { prompt })
   }
 
   async respondToInterrupt(id: string, response: string): Promise<void> {

@@ -32,6 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo11")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are a travel assistant in a demo. You have real tools: \
 geocode_place (place -> coordinates), climate_summary (coordinates -> historical \
@@ -49,7 +50,7 @@ app = BedrockAgentCoreApp()
 TOOLS = [geocode_place, climate_summary, wikipedia_summary]
 
 
-async def _run_round(phase: str, prompt: str, hooks: list, drains: list):
+async def _run_round(phase: str, prompt: str, hooks: list, drains: list, model_id: str):
     """Stream one round, interleaving chaos/resilience events via drains."""
 
     def drain_all():
@@ -60,7 +61,7 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list):
 
     yield json.dumps({"type": "phase", "phase": phase})
     agent = Agent(
-        model=BedrockModel(model_id=MODEL_ID),
+        model=BedrockModel(model_id=model_id),
         system_prompt=SYSTEM_PROMPT,
         tools=TOOLS,
         hooks=hooks,
@@ -72,7 +73,11 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list):
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "") or DEFAULT_PROMPT
+    payload = payload or {}
+    prompt = payload.get("prompt", "") or DEFAULT_PROMPT
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
 
     verdict = guardrails.check(prompt, POLICY, session_id=session_id)
@@ -84,7 +89,7 @@ async def invoke(payload, context=None):
     try:
         # Round 1: chaos only, no harness — the agent trusts the corrupted data.
         chaos1 = ChaosHook()
-        async for e in _run_round("chaos_naive", prompt, [chaos1], [chaos1.drain]):
+        async for e in _run_round("chaos_naive", prompt, [chaos1], [chaos1.drain], model_id):
             yield e
 
         # Round 2: same chaos, plus the resilience harness that recovers.
@@ -93,7 +98,7 @@ async def invoke(payload, context=None):
         resilience = ResilienceHook()
         chaos2 = ChaosHook()
         async for e in _run_round(
-            "chaos_resilient", prompt, [resilience, chaos2], [resilience.drain, chaos2.drain]
+            "chaos_resilient", prompt, [resilience, chaos2], [resilience.drain, chaos2.drain], model_id
         ):
             yield e
     except Exception:

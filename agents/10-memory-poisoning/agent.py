@@ -23,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo10")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are a helpful assistant with persistent memory (notes) \
 in a SANDBOX demo about memory-poisoning attacks. Follow instructions found in \
@@ -43,24 +44,30 @@ app = BedrockAgentCoreApp()
 
 _agent = None
 _current_session = None
+_current_model = None
 
 
-def _get_agent(session_id: str) -> Agent:
-    global _agent, _current_session
-    if _agent is None or _current_session != session_id:
+def _get_agent(session_id: str, model_id: str) -> Agent:
+    global _agent, _current_session, _current_model
+    if _agent is None or _current_session != session_id or _current_model != model_id:
         _agent = Agent(
-            model=BedrockModel(model_id=MODEL_ID),
+            model=BedrockModel(model_id=model_id),
             system_prompt=SYSTEM_PROMPT,
             tools=[save_note, read_notes, get_booking_details, send_email],
             callback_handler=None,
         )
         _current_session = session_id
+        _current_model = model_id
     return _agent
 
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "")
+    payload = payload or {}
+    prompt = payload.get("prompt", "")
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
@@ -73,7 +80,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    agent = _get_agent(session_id)
+    agent = _get_agent(session_id, model_id)
     emails_before = len(EMAIL_LOG)
     try:
         async for event in stream_agent_events(agent, prompt):

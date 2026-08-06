@@ -95,7 +95,7 @@ function CycleCard({ event, t }: { event: AgentEvent; t: Strings }) {
       </div>
       {reasoning
         ? <>{t.reasoning(String(event.cycle))}<span className="hint"> — {open ? '' : t.clickToSee}</span></>
-        : <span className="cycle-num">{t.cycleLabel} {String(event.cycle)}</span>
+        : <span className="muted">{t.cycleResponding}</span>
       }
       {open && reasoning && <div className="reasoning">{reasoning}</div>}
     </div>
@@ -334,6 +334,13 @@ function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
 
 export default function App() {
   const [lang, setLang] = useState<Lang>(getStoredLang())
+  const [modelKey, setModelKey] = useState<'nova' | 'claude'>(
+    () => (localStorage.getItem('strands-demos-model') as 'nova' | 'claude') ?? 'nova'
+  )
+  const MODEL_IDS = {
+    nova: 'us.amazon.nova-pro-v1:0',
+    claude: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+  }
   const [authed, setAuthed] = useState(!!getToken())
   // Initial demo/robots view come from the URL (e.g. /agent_loop, /hooks, /robots).
   const initialRoute = parseRoute(window.location.pathname, DEMO_SLUGS[0])
@@ -444,7 +451,7 @@ export default function App() {
     } catch {
       setStatus('error')
     }
-  }, [demoSlug, handleEvent])
+  }, [demoSlug, modelKey, handleEvent])
 
   useEffect(() => {
     if (authed) connect()
@@ -468,7 +475,7 @@ export default function App() {
     if (busyTimer.current) window.clearTimeout(busyTimer.current)
     busyTimer.current = window.setTimeout(() => setBusy(false), 120_000)
     try {
-      await sessionRef.current!.send(prompt)
+      await sessionRef.current!.send(prompt, MODEL_IDS[modelKey])
     } catch (ex) {
       setBusy(false)
       setMessages((prev) => [
@@ -491,6 +498,20 @@ export default function App() {
         </div>
         <div className={`status ${status}`}>
           {status === 'ready' ? t.connected : status === 'connecting' ? t.connecting : t.disconnected}
+        </div>
+        <div className="langswitch">
+          {(['nova', 'claude'] as const).map((k) => (
+            <button
+              key={k}
+              className={k === modelKey ? 'active' : ''}
+              onClick={() => {
+                setModelKey(k)
+                localStorage.setItem('strands-demos-model', k)
+              }}
+            >
+              {k === 'nova' ? t.modelNova : t.modelClaude}
+            </button>
+          ))}
         </div>
         <LangSwitch lang={lang} onChange={changeLang} />
         <button className="reset" onClick={connect}>

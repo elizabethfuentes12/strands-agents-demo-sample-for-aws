@@ -20,14 +20,15 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo06")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 POLICY = guardrails.Policy(topic="how a multi-agent swarm collaborates")
 
 app = BedrockAgentCoreApp()
 
 
-def _build_swarm() -> Swarm:
-    model = BedrockModel(model_id=MODEL_ID)
+def _build_swarm(model_id: str) -> Swarm:
+    model = BedrockModel(model_id=model_id)
     researcher = Agent(
         name="researcher",
         model=model,
@@ -83,7 +84,11 @@ def _node_metrics(result) -> dict:
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "")
+    payload = payload or {}
+    prompt = payload.get("prompt", "")
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
@@ -96,7 +101,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    swarm = _build_swarm()
+    swarm = _build_swarm(model_id)
     current_node = None
     try:
         async for event in swarm.stream_async(prompt):

@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo08")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 POLICY = guardrails.Policy(topic="a multi-agent graph pipeline")
 
@@ -34,8 +35,8 @@ GRAPH_EDGES = [
 ]
 
 
-def _build_graph():
-    model = BedrockModel(model_id=MODEL_ID)
+def _build_graph(model_id: str):
+    model = BedrockModel(model_id=model_id)
     brainstormer = Agent(
         name="brainstormer",
         model=model,
@@ -76,7 +77,11 @@ def _build_graph():
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "")
+    payload = payload or {}
+    prompt = payload.get("prompt", "")
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
@@ -89,7 +94,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    graph = _build_graph()
+    graph = _build_graph(model_id)
     # Tell the UI the topology up front so it can draw the DAG.
     yield json.dumps({"type": "graph_topology", "edges": GRAPH_EDGES})
     current_node = None

@@ -21,6 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo09")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 ORCHESTRATOR_PROMPT = """You are the front-desk concierge of an AWS demo booth. \
 Delegate every question to the right specialist tool: aws_expert for AWS/cloud \
@@ -34,36 +35,40 @@ app = BedrockAgentCoreApp()
 
 _agent = None
 _current_session = None
+_current_model = None
 
 
-def _specialist(name: str, prompt: str) -> Agent:
+def _specialist(name: str, prompt: str, model_id: str) -> Agent:
     return Agent(
         name=name,
-        model=BedrockModel(model_id=MODEL_ID),
+        model=BedrockModel(model_id=model_id),
         system_prompt=prompt,
         callback_handler=None,
     )
 
 
-def _get_agent(session_id: str) -> Agent:
-    global _agent, _current_session
-    if _agent is None or _current_session != session_id:
+def _get_agent(session_id: str, model_id: str) -> Agent:
+    global _agent, _current_session, _current_model
+    if _agent is None or _current_session != session_id or _current_model != model_id:
         aws_expert = _specialist(
             "aws_expert",
             "You are an AWS solutions architect. Answer cloud/AWS questions in 2-3 sentences.",
+            model_id,
         )
         agents_expert = _specialist(
             "agents_expert",
             "You are a Strands Agents specialist. Answer AI-agent questions in 2-3 sentences.",
+            model_id,
         )
         event_guide = _specialist(
             "event_guide",
             "You are the event guide. This booth showcases Strands Agents demos: "
             "agent loop, structured output, security hooks, human-in-the-loop, "
             "observability, multi-agent patterns, and token optimization. Answer in 2 sentences.",
+            model_id,
         )
         _agent = Agent(
-            model=BedrockModel(model_id=MODEL_ID),
+            model=BedrockModel(model_id=model_id),
             system_prompt=ORCHESTRATOR_PROMPT,
             tools=[
                 aws_expert.as_tool(description="AWS and cloud architecture questions"),
@@ -73,12 +78,17 @@ def _get_agent(session_id: str) -> Agent:
             callback_handler=None,
         )
         _current_session = session_id
+        _current_model = model_id
     return _agent
 
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "")
+    payload = payload or {}
+    prompt = payload.get("prompt", "")
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
@@ -91,7 +101,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    agent = _get_agent(session_id)
+    agent = _get_agent(session_id, model_id)
     try:
         async for event in stream_agent_events(agent, prompt):
             yield json.dumps(event)

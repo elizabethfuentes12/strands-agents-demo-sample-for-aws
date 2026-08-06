@@ -22,6 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo03")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are an ops assistant in a SANDBOX demo. Every tool is a \
 harmless simulation and a separate security layer (hooks) enforces the real \
@@ -46,26 +47,32 @@ app = BedrockAgentCoreApp()
 _agent = None
 _guardian = None
 _current_session = None
+_current_model = None
 
 
-def _get_agent(session_id: str):
-    global _agent, _guardian, _current_session
-    if _agent is None or _current_session != session_id:
+def _get_agent(session_id: str, model_id: str):
+    global _agent, _guardian, _current_session, _current_model
+    if _agent is None or _current_session != session_id or _current_model != model_id:
         _guardian = GuardianHook()
         _agent = Agent(
-            model=BedrockModel(model_id=MODEL_ID),
+            model=BedrockModel(model_id=model_id),
             system_prompt=SYSTEM_PROMPT,
             tools=[check_order_status, refund_payment, send_email_blast, delete_database],
             hooks=[_guardian],
             callback_handler=None,
         )
         _current_session = session_id
+        _current_model = model_id
     return _agent, _guardian
 
 
 @app.entrypoint
 async def invoke(payload, context=None):
-    prompt = (payload or {}).get("prompt", "")
+    payload = payload or {}
+    prompt = payload.get("prompt", "")
+    model_id = payload.get("model", MODEL_ID)
+    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
+        model_id = MODEL_ID
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
@@ -78,7 +85,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    agent, guardian = _get_agent(session_id)
+    agent, guardian = _get_agent(session_id, model_id)
     try:
         async for event in stream_agent_events(agent, prompt, drain=guardian.drain):
             yield json.dumps(event)

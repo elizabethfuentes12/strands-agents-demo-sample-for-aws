@@ -29,6 +29,9 @@ export interface Strings {
   waitingBody: string
   cycleLabel: string
   reasoning: (cycle: string) => string
+  cycleResponding: string
+  modelNova: string
+  modelClaude: string
   toolCall: string
   result: string
   blocked: string
@@ -93,6 +96,9 @@ export const STRINGS: Record<Lang, Strings> = {
       'Send a message and watch the agent loop in action: cycles, tool calls, and metrics in real time.',
     cycleLabel: 'Agent loop cycle',
     reasoning: (cycle: string) => `Reasoning… (cycle ${cycle})`,
+    cycleResponding: 'Generating response',
+    modelNova: 'Nova Pro',
+    modelClaude: 'Claude Haiku',
     toolCall: '🔧 Tool call',
     result: '✅ Result',
     blocked: '🔴 Blocked',
@@ -156,6 +162,9 @@ export const STRINGS: Record<Lang, Strings> = {
       'Envía un mensaje y mira el agent loop en acción: ciclos, tool calls y métricas en tiempo real.',
     cycleLabel: 'Ciclo del agent loop',
     reasoning: (cycle: string) => `Razonando… (ciclo ${cycle})`,
+    cycleResponding: 'Generando respuesta',
+    modelNova: 'Nova Pro',
+    modelClaude: 'Claude Haiku',
     toolCall: '🔧 Tool call',
     result: '✅ Resultado',
     blocked: '🔴 Bloqueado',
@@ -219,6 +228,9 @@ export const STRINGS: Record<Lang, Strings> = {
       'Envie uma mensagem e veja o agent loop em ação: ciclos, chamadas de tools e métricas em tempo real.',
     cycleLabel: 'Ciclo do agent loop',
     reasoning: (cycle: string) => `Raciocinando… (ciclo ${cycle})`,
+    cycleResponding: 'Gerando resposta',
+    modelNova: 'Nova Pro',
+    modelClaude: 'Claude Haiku',
     toolCall: '🔧 Chamada de tool',
     result: '✅ Resultado',
     blocked: '🔴 Bloqueado',
