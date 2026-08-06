@@ -148,8 +148,13 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                             tool_names.get(tool_id, "unknown"), text_out, duration_ms
                         )
         elif "result" in event:
+            # Flush reasoning_splitter as tokens: if we reach the result and
+            # reasoning_splitter still has content, it means Nova answered via
+            # the data channel (not reasoningText) while the splitter was still
+            # in in_thinking=True from the last restart — that content is the
+            # user-facing answer, not internal reasoning.
             for kind, chunk in reasoning_splitter.flush():
-                yield _emit(kind, chunk)
+                yield ev.token(chunk) if kind == "reasoning" else _emit(kind, chunk)
             for kind, chunk in splitter.flush():
                 yield _emit(kind, chunk)
             yield ev.metrics_from_result(event["result"])

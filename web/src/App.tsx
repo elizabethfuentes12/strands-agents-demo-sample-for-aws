@@ -93,8 +93,10 @@ function CycleCard({ event, t }: { event: AgentEvent; t: Strings }) {
         {t.cycleLabel}
         {reasoning && <span className="chevron">{open ? '▾' : '▸'}</span>}
       </div>
-      {t.reasoning(String(event.cycle))}
-      {reasoning && <span className="hint"> — {open ? '' : t.clickToSee}</span>}
+      {reasoning
+        ? <>{t.reasoning(String(event.cycle))}<span className="hint"> — {open ? '' : t.clickToSee}</span></>
+        : <span className="cycle-num">{t.cycleLabel} {String(event.cycle)}</span>
+      }
       {open && reasoning && <div className="reasoning">{reasoning}</div>}
     </div>
   )
