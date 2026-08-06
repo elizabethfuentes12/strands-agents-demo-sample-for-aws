@@ -28,11 +28,16 @@ class WebStack(Stack):
 
         dist = WEB_DIR / "dist"
         env_local = WEB_DIR / ".env.local"
+        env_example = WEB_DIR / ".env.local.example"
         if not env_local.exists():
-            raise FileNotFoundError(
-                f"{env_local} not found. Deploy the base stack first and write "
-                "web/.env.local from its outputs (see deploy.sh / README)."
-            )
+            if env_example.exists():
+                import shutil
+                shutil.copy(env_example, env_local)
+            else:
+                raise FileNotFoundError(
+                    f"{env_local} not found. Deploy the base stack first and write "
+                    "web/.env.local from its outputs (see deploy.sh / README)."
+                )
 
         # Build the SPA at synth time so dist/ reflects the current .env.local.
         subprocess.run(["npm", "install", "--silent"], cwd=WEB_DIR, check=True)
