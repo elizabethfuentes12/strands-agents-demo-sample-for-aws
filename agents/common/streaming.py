@@ -28,8 +28,15 @@ class _ThinkingSplitter:
             if self.in_thinking:
                 idx = self.pending.find(_CLOSE)
                 if idx == -1:
-                    self.thinking += self.pending
-                    self.pending = ""
+                    # Hold back any partial "</thinking" prefix at the tail so a
+                    # close tag split across chunks is still detected next feed.
+                    keep = 0
+                    for n in range(min(len(_CLOSE) - 1, len(self.pending)), 0, -1):
+                        if _CLOSE.startswith(self.pending[-n:]):
+                            keep = n
+                            break
+                    self.thinking += self.pending[: len(self.pending) - keep]
+                    self.pending = self.pending[len(self.pending) - keep:]
                     break
                 self.thinking += self.pending[:idx]
                 self.pending = self.pending[idx + len(_CLOSE):]
@@ -66,6 +73,11 @@ class _ThinkingSplitter:
         self.in_thinking = False
         return out
 
+    def restart(self, in_thinking: bool = False) -> None:
+        """Reset state for a new segment (e.g. a new agent-loop cycle)."""
+        self.pending = self.thinking = ""
+        self.in_thinking = in_thinking
+
 
 async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     """Yield demo-protocol dicts from a Strands agent stream.
@@ -77,24 +89,37 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     tool_started_at = {}
     tool_names = {}
     splitter = _ThinkingSplitter()
+    # Nova streams its answer through the native reasoning channel, opening with
+    # implicit thinking (no <thinking> tag) and closing with </thinking>; the
+    # text AFTER that close tag is the user-facing answer. Split it so reasoning
+    # goes to the panel and the answer reaches the chat as tokens.
+    reasoning_splitter = _ThinkingSplitter()
+    reasoning_splitter.in_thinking = True
+
+    def _emit(kind, chunk):
+        if kind == "token":
+            return ev.token(chunk)
+        return {"type": "reasoning", "cycle": cycle, "text": chunk}
 
     def _split(text):
         for kind, chunk in splitter.feed(text):
-            if kind == "token":
-                yield ev.token(chunk)
-            else:
-                yield {"type": "reasoning", "cycle": cycle, "text": chunk}
+            yield _emit(kind, chunk)
 
     async for event in agent.stream_async(prompt, **stream_kwargs):
         if drain:
             for extra in drain():
                 yield extra
         if event.get("start_event_loop"):
+            # Close out the previous cycle's reasoning before starting a new one.
+            for kind, chunk in reasoning_splitter.flush():
+                yield _emit(kind, chunk)
+            reasoning_splitter.restart(in_thinking=True)
             cycle += 1
             yield ev.cycle_start(cycle)
         elif event.get("reasoning") and event.get("reasoningText"):
             # Native reasoning events (models with explicit reasoning support).
-            yield {"type": "reasoning", "cycle": cycle, "text": event["reasoningText"]}
+            for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
+                yield _emit(kind, chunk)
         elif "data" in event:
             for out in _split(event["data"]):
                 yield out
@@ -123,10 +148,10 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                             tool_names.get(tool_id, "unknown"), text_out, duration_ms
                         )
         elif "result" in event:
+            for kind, chunk in reasoning_splitter.flush():
+                yield _emit(kind, chunk)
             for kind, chunk in splitter.flush():
-                yield ev.token(chunk) if kind == "token" else {
-                    "type": "reasoning", "cycle": cycle, "text": chunk,
-                }
+                yield _emit(kind, chunk)
             yield ev.metrics_from_result(event["result"])
     if drain:
         for extra in drain():

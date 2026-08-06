@@ -736,3 +736,6 @@ class ResilienceHook(HookProvider):
 export function getDemos(lang: Lang): DemoDef[] {
   return ENTRIES.map((e) => ({ slug: e.slug, code: e.code, docsUrl: e.docsUrl, ...e.text[lang] }))
 }
+
+// The canonical slug of every demo, in menu order. Source of truth for routing.
+export const DEMO_SLUGS: string[] = ENTRIES.map((e) => e.slug)

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { DemoDef, getDemos } from './config'
+import { DemoDef, DEMO_SLUGS, getDemos } from './config'
 import { getStoredLang, Lang, storeLang, STRINGS, Strings } from './i18n'
+import { parseRoute, pushRoute, ROBOTS_ROUTE, slugToPath } from './routes'
 import { getToken, login, logout } from './services/auth'
 import { AgentEvent, DemoSession, newSessionId } from './services/events'
 
@@ -332,7 +333,9 @@ function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
 export default function App() {
   const [lang, setLang] = useState<Lang>(getStoredLang())
   const [authed, setAuthed] = useState(!!getToken())
-  const [demoSlug, setDemoSlug] = useState('agent-loop')
+  // Initial demo/robots view come from the URL (e.g. /agent_loop, /hooks, /robots).
+  const initialRoute = parseRoute(window.location.pathname, DEMO_SLUGS[0])
+  const [demoSlug, setDemoSlug] = useState(initialRoute.slug)
   const [status, setStatus] = useState<'connecting' | 'ready' | 'closed' | 'error'>('closed')
   const [messages, setMessages] = useState<ChatMsg[]>([])
   const [insights, setInsights] = useState<AgentEvent[]>([])
@@ -344,7 +347,7 @@ export default function App() {
     id: string
     reason: unknown
   } | null>(null)
-  const [showRobots, setShowRobots] = useState(false)
+  const [showRobots, setShowRobots] = useState(initialRoute.robots)
   const sessionRef = useRef<DemoSession | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const msgsRef = useRef<HTMLDivElement>(null)
@@ -358,6 +361,28 @@ export default function App() {
     storeLang(l)
     setLang(l)
   }
+
+  // Navigate to a demo (or the robots slot) and reflect it in the address bar.
+  const goToDemo = (slug: string) => {
+    setShowRobots(false)
+    setDemoSlug(slug)
+    pushRoute(slugToPath(slug))
+  }
+  const goToRobots = () => {
+    setShowRobots(true)
+    pushRoute('/' + ROBOTS_ROUTE)
+  }
+
+  // Keep the view in sync with browser back/forward.
+  useEffect(() => {
+    const onPop = () => {
+      const r = parseRoute(window.location.pathname, DEMO_SLUGS[0])
+      setShowRobots(r.robots)
+      setDemoSlug(r.slug)
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   const handleEvent = useCallback((e: AgentEvent) => {
     if (e.type === 'token') {
@@ -504,10 +529,7 @@ export default function App() {
                   <button
                     key={d.slug}
                     className={`item ${d.slug === demo.slug && !showRobots ? 'active' : ''}`}
-                    onClick={() => {
-                      setShowRobots(false)
-                      setDemoSlug(d.slug)
-                    }}
+                    onClick={() => goToDemo(d.slug)}
                   >
                     {d.title}
                   </button>
@@ -517,7 +539,7 @@ export default function App() {
           <div className="category">🤖 Robots</div>
           <button
             className={`item ${showRobots ? 'active' : ''}`}
-            onClick={() => setShowRobots(true)}
+            onClick={goToRobots}
           >
             {t.robotsTitle}
           </button>
