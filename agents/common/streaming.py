@@ -1,7 +1,70 @@
-"""Shared translation: Strands stream_async events -> demo event protocol."""
+"""Shared translation: Strands stream_async events -> demo event protocol.
+
+Also separates model reasoning from user-facing text: Nova emits
+``<thinking>...</thinking>`` inline in the data stream; that content is
+captured and emitted as `reasoning` events (the UI attaches them to the
+current cycle card) instead of chat tokens.
+"""
 import time
 
 import demo_events as ev
+
+_OPEN, _CLOSE = "<thinking>", "</thinking>"
+
+
+class _ThinkingSplitter:
+    """Streaming state machine that splits chat text from <thinking> blocks."""
+
+    def __init__(self) -> None:
+        self.pending = ""
+        self.thinking = ""
+        self.in_thinking = False
+
+    def feed(self, text: str) -> list:
+        """Returns a list of ('token'|'reasoning', text) tuples ready to emit."""
+        out = []
+        self.pending += text
+        while True:
+            if self.in_thinking:
+                idx = self.pending.find(_CLOSE)
+                if idx == -1:
+                    self.thinking += self.pending
+                    self.pending = ""
+                    break
+                self.thinking += self.pending[:idx]
+                self.pending = self.pending[idx + len(_CLOSE):]
+                out.append(("reasoning", self.thinking.strip()))
+                self.thinking = ""
+                self.in_thinking = False
+            else:
+                idx = self.pending.find(_OPEN)
+                if idx == -1:
+                    # Hold back any partial "<thinking" prefix at the tail.
+                    keep = 0
+                    for n in range(min(len(_OPEN) - 1, len(self.pending)), 0, -1):
+                        if _OPEN.startswith(self.pending[-n:]):
+                            keep = n
+                            break
+                    emit = self.pending[: len(self.pending) - keep]
+                    self.pending = self.pending[len(self.pending) - keep:]
+                    if emit:
+                        out.append(("token", emit))
+                    break
+                if idx > 0:
+                    out.append(("token", self.pending[:idx]))
+                self.pending = self.pending[idx + len(_OPEN):]
+                self.in_thinking = True
+        return out
+
+    def flush(self) -> list:
+        out = []
+        if self.in_thinking and (self.thinking or self.pending):
+            out.append(("reasoning", (self.thinking + self.pending).strip()))
+        elif self.pending:
+            out.append(("token", self.pending))
+        self.pending = self.thinking = ""
+        self.in_thinking = False
+        return out
 
 
 async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
@@ -13,6 +76,14 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     cycle = 0
     tool_started_at = {}
     tool_names = {}
+    splitter = _ThinkingSplitter()
+
+    def _split(text):
+        for kind, chunk in splitter.feed(text):
+            if kind == "token":
+                yield ev.token(chunk)
+            else:
+                yield {"type": "reasoning", "cycle": cycle, "text": chunk}
 
     async for event in agent.stream_async(prompt, **stream_kwargs):
         if drain:
@@ -21,8 +92,12 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
         if event.get("start_event_loop"):
             cycle += 1
             yield ev.cycle_start(cycle)
+        elif event.get("reasoning") and event.get("reasoningText"):
+            # Native reasoning events (models with explicit reasoning support).
+            yield {"type": "reasoning", "cycle": cycle, "text": event["reasoningText"]}
         elif "data" in event:
-            yield ev.token(event["data"])
+            for out in _split(event["data"]):
+                yield out
         elif "current_tool_use" in event and event["current_tool_use"].get("name"):
             tool_use = event["current_tool_use"]
             tool_id = tool_use.get("toolUseId")
@@ -48,6 +123,10 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                             tool_names.get(tool_id, "unknown"), text_out, duration_ms
                         )
         elif "result" in event:
+            for kind, chunk in splitter.flush():
+                yield ev.token(chunk) if kind == "token" else {
+                    "type": "reasoning", "cycle": cycle, "text": chunk,
+                }
             yield ev.metrics_from_result(event["result"])
     if drain:
         for extra in drain():

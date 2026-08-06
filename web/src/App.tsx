@@ -25,7 +25,7 @@ function stripThinking(text: string): string {
 function LangSwitch({ lang, onChange }: { lang: Lang; onChange: (l: Lang) => void }) {
   return (
     <div className="langswitch">
-      {(['en', 'es'] as Lang[]).map((l) => (
+      {(['en', 'es', 'pt'] as Lang[]).map((l) => (
         <button
           key={l}
           className={l === lang ? 'active' : ''}
@@ -80,15 +80,29 @@ function Login({
   )
 }
 
+function CycleCard({ event, t }: { event: AgentEvent; t: Strings }) {
+  const [open, setOpen] = useState(false)
+  const reasoning = typeof event.reasoning === 'string' ? event.reasoning.trim() : ''
+  return (
+    <div
+      className={`card cycle ${reasoning ? 'expandable' : ''}`}
+      onClick={() => reasoning && setOpen(!open)}
+    >
+      <div className="label">
+        {t.cycleLabel}
+        {reasoning && <span className="chevron">{open ? '▾' : '▸'}</span>}
+      </div>
+      {t.reasoning(String(event.cycle))}
+      {reasoning && <span className="hint"> — {open ? '' : t.clickToSee}</span>}
+      {open && reasoning && <div className="reasoning">{reasoning}</div>}
+    </div>
+  )
+}
+
 function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
   switch (event.type) {
     case 'cycle_start':
-      return (
-        <div className="card cycle">
-          <div className="label">{t.cycleLabel}</div>
-          {t.reasoning(String(event.cycle))}
-        </div>
-      )
+      return <CycleCard event={event} t={t} />
     case 'tool_call_start':
       return (
         <div className="card tool">
@@ -181,6 +195,63 @@ function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
           {Number(event.total_tokens).toLocaleString()} tokens
         </div>
       )
+    case 'interrupt':
+      return (
+        <div className="card blocked">
+          <div className="label">🧊 Interrupt</div>
+          <strong>{String(event.name)}</strong>
+          <div className="mono">{JSON.stringify(event.reason)}</div>
+        </div>
+      )
+    case 'business_attr': {
+      const attrs = (event.attrs ?? {}) as Record<string, unknown>
+      const vip = attrs['business.vip_booking'] === true
+      return (
+        <div className="card result">
+          <div className="label">{vip ? '💎' : '🏷️'} {t.businessAttr}</div>
+          {Object.entries(attrs).map(([k, v]) => (
+            <div key={k} className="mono">
+              {k} = {String(v)}
+            </div>
+          ))}
+        </div>
+      )
+    }
+    case 'ground_truth': {
+      const bookings = (event.bookings ?? []) as Array<Record<string, unknown>>
+      return (
+        <div className="card cycle">
+          <div className="label">📒 {t.groundTruth}</div>
+          {bookings.length === 0
+            ? t.groundTruthEmpty
+            : bookings.map((b, i) => (
+                <div key={i} className="mono">
+                  {String(b.id)} · {String(b.offer_id)} · ${String(b.price_usd)}
+                </div>
+              ))}
+        </div>
+      )
+    }
+    case 'node_stop':
+      return (
+        <div className="card result">
+          <div className="label">✅ {t.nodeDone}</div>
+          <strong>{String(event.node)}</strong>
+        </div>
+      )
+    case 'graph_topology': {
+      const edges = (event.edges ?? []) as string[][]
+      return (
+        <div className="card cycle">
+          <div className="label">🗺️ {t.graphTopology}</div>
+          {edges.map((e, i) => (
+            <div key={i} className="mono">
+              {e[0]} → {e[1]}
+            </div>
+          ))}
+        </div>
+      )
+    }
     case 'comparison': {
       const naive = (event.naive ?? {}) as { total_tokens?: number }
       const pointer = (event.pointer ?? {}) as { total_tokens?: number }
@@ -206,6 +277,27 @@ function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
         </div>
       )
     }
+    case 'memory_state': {
+      const notes = (event.notes ?? []) as string[]
+      const sent = Number(event.emails_sent_this_turn ?? 0)
+      return (
+        <div className="card cycle">
+          <div className="label">🧠 {t.memoryState}</div>
+          {notes.length === 0 ? (
+            <div className="mono">{t.memoryEmpty}</div>
+          ) : (
+            notes.map((n, i) => (
+              <div key={i} className="mono poisoned">
+                📝 {n}
+              </div>
+            ))
+          )}
+          <div className={sent === 0 ? 'reduction' : 'mono'}>
+            {sent === 0 ? `🛡️ ${t.emailsBlocked}` : `⚠️ ${sent} ${t.emailsLeaked}`}
+          </div>
+        </div>
+      )
+    }
     default:
       return null
   }
@@ -222,6 +314,11 @@ export default function App() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [showLupa, setShowLupa] = useState(false)
+  const [pendingInterrupt, setPendingInterrupt] = useState<{
+    id: string
+    reason: unknown
+  } | null>(null)
+  const [showRobots, setShowRobots] = useState(false)
   const sessionRef = useRef<DemoSession | null>(null)
   const feedRef = useRef<HTMLDivElement>(null)
   const msgsRef = useRef<HTMLDivElement>(null)
@@ -250,6 +347,22 @@ export default function App() {
       })
     } else if (e.type === 'metrics') {
       setMetrics(e as unknown as Metrics)
+    } else if (e.type === 'reasoning') {
+      // Attach reasoning text to the matching cycle card in the insights feed.
+      setInsights((prev) => {
+        const out = [...prev]
+        for (let i = out.length - 1; i >= 0; i--) {
+          if (out[i].type === 'cycle_start' && out[i].cycle === e.cycle) {
+            const existing = typeof out[i].reasoning === 'string' ? out[i].reasoning : ''
+            out[i] = { ...out[i], reasoning: existing + String(e.text) }
+            return out
+          }
+        }
+        return out
+      })
+    } else if (e.type === 'interrupt') {
+      setPendingInterrupt({ id: String(e.id), reason: e.reason })
+      setInsights((prev) => [...prev, e])
     } else if (e.type === 'error') {
       setMessages((prev) => [...prev, { role: 'error', text: String(e.message) }])
     } else if (e.type === 'done') {
@@ -364,16 +477,40 @@ export default function App() {
                 .map((d) => (
                   <button
                     key={d.slug}
-                    className={`item ${d.slug === demo.slug ? 'active' : ''}`}
-                    onClick={() => setDemoSlug(d.slug)}
+                    className={`item ${d.slug === demo.slug && !showRobots ? 'active' : ''}`}
+                    onClick={() => {
+                      setShowRobots(false)
+                      setDemoSlug(d.slug)
+                    }}
                   >
                     {d.title}
                   </button>
                 ))}
             </div>
           ))}
+          <div className="category">🤖 Robots</div>
+          <button
+            className={`item ${showRobots ? 'active' : ''}`}
+            onClick={() => setShowRobots(true)}
+          >
+            {t.robotsTitle}
+          </button>
         </nav>
 
+        {showRobots ? (
+          <section className="robots">
+            <h2>🤖 {t.robotsTitle}</h2>
+            <p>{t.robotsBody}</p>
+            {/* Video slot: replace the placeholder below with an embedded
+                video of Strands running on a physical robot, e.g.
+                <video src="/robots-demo.mp4" controls /> or a YouTube iframe. */}
+            <div className="videoslot">
+              <span>🎬 {t.robotsVideoSoon}</span>
+            </div>
+            <p className="dim">{t.robotsHint}</p>
+          </section>
+        ) : (
+          <>
         <section className="chat">
           <div className="messages" ref={msgsRef}>
             {messages.length === 0 && <div className="bubble agent">{demo.description}</div>}
@@ -383,7 +520,37 @@ export default function App() {
               </div>
             ))}
           </div>
-          {busy && <div className="typing">{t.working}</div>}
+          {busy && !pendingInterrupt && <div className="typing">{t.working}</div>}
+          {pendingInterrupt && (
+            <div className="interruptbar">
+              <div className="frozen">🧊 {t.approvalNeeded}</div>
+              <div className="mono">{JSON.stringify(pendingInterrupt.reason)}</div>
+              <div className="actions">
+                <button
+                  className="approve"
+                  onClick={() => {
+                    const id = pendingInterrupt.id
+                    setPendingInterrupt(null)
+                    setBusy(true)
+                    sessionRef.current?.respondToInterrupt(id, 'y')
+                  }}
+                >
+                  {t.approve}
+                </button>
+                <button
+                  className="rejectbtn"
+                  onClick={() => {
+                    const id = pendingInterrupt.id
+                    setPendingInterrupt(null)
+                    setBusy(true)
+                    sessionRef.current?.respondToInterrupt(id, 'no')
+                  }}
+                >
+                  {t.reject}
+                </button>
+              </div>
+            </div>
+          )}
           <div className="suggestions">
             {demo.suggestions.map((s) => (
               <button key={s} onClick={() => send(s)} disabled={busy}>
@@ -443,6 +610,8 @@ export default function App() {
             </div>
           )}
         </aside>
+          </>
+        )}
       </div>
 
       {showLupa && (

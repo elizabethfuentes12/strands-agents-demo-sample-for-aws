@@ -148,11 +148,11 @@ def _parse_event(line: str) -> dict:
 def _process_message(demo: str, session_id: str, message: dict) -> None:
     out_channel = f"out/{demo}/{session_id}"
     try:
-        response = _invoke_agentcore(
-            _runtime_arn(demo),
-            session_id,
-            {"prompt": message.get("prompt", ""), "demo": demo},
-        )
+        payload = {"prompt": message.get("prompt", ""), "demo": demo}
+        # Human-in-the-loop: forward interrupt responses to resume the agent.
+        if "interrupt_response" in message:
+            payload["interrupt_response"] = message["interrupt_response"]
+        response = _invoke_agentcore(_runtime_arn(demo), session_id, payload)
         # AppSync fan-out does not guarantee ordering across publishes, so
         # every event carries a sequence number for the client to sort on.
         seq = 0

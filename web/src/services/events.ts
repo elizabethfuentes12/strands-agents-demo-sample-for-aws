@@ -14,12 +14,19 @@ export interface AgentEvent {
     | 'error'
     | 'done'
     // demo-specific insight events
+    | 'reasoning'
+    | 'interrupt'
     | 'structured'
     | 'node_start'
+    | 'node_stop'
     | 'swarm_metrics'
+    | 'graph_topology'
+    | 'business_attr'
+    | 'ground_truth'
     | 'phase'
     | 'phase_result'
     | 'comparison'
+    | 'memory_state'
   seq?: number
   [key: string]: unknown
 }
@@ -141,12 +148,20 @@ export class DemoSession {
   }
 
   async send(prompt: string): Promise<void> {
+    await this.publish({ prompt })
+  }
+
+  async respondToInterrupt(id: string, response: string): Promise<void> {
+    await this.publish({ interrupt_response: { id, response } })
+  }
+
+  private async publish(payload: Record<string, unknown>): Promise<void> {
     const res = await fetch(`https://${config.eventsHttpDomain}/event`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: this.token },
       body: JSON.stringify({
         channel: `inbox/${this.demo}/${this.sessionId}`,
-        events: [JSON.stringify({ prompt })],
+        events: [JSON.stringify(payload)],
       }),
     })
     if (!res.ok) throw new Error(`Publish failed (${res.status})`)

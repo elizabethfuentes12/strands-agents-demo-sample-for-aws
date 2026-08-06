@@ -1,10 +1,10 @@
-export type Lang = 'en' | 'es'
+export type Lang = 'en' | 'es' | 'pt'
 
 const STORAGE_KEY = 'strands-demos-lang'
 
 export function getStoredLang(): Lang {
   const raw = localStorage.getItem(STORAGE_KEY)
-  return raw === 'es' ? 'es' : 'en'
+  return raw === 'es' || raw === 'pt' ? raw : 'en'
 }
 
 export function storeLang(lang: Lang): void {
@@ -50,6 +50,23 @@ export interface Strings {
   comparisonLabel: string
   tokensSaved: string
   readDocs: string
+  clickToSee: string
+  businessAttr: string
+  groundTruth: string
+  groundTruthEmpty: string
+  nodeDone: string
+  graphTopology: string
+  memoryState: string
+  memoryEmpty: string
+  emailsBlocked: string
+  emailsLeaked: string
+  approve: string
+  reject: string
+  approvalNeeded: string
+  robotsTitle: string
+  robotsBody: string
+  robotsVideoSoon: string
+  robotsHint: string
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -93,6 +110,24 @@ export const STRINGS: Record<Lang, Strings> = {
     comparisonLabel: 'Token comparison',
     tokensSaved: 'tokens saved',
     readDocs: 'Read the Strands docs',
+    clickToSee: 'click to see the reasoning',
+    businessAttr: 'Business attribute (OTEL span)',
+    groundTruth: 'Ground truth (ledger)',
+    groundTruthEmpty: 'No bookings recorded yet.',
+    memoryState: 'Agent memory (ground truth)',
+    memoryEmpty: 'No notes stored.',
+    emailsBlocked: 'Exfiltration blocked at the tool boundary — 0 emails left.',
+    emailsLeaked: 'email(s) actually left — the gate failed!',
+    nodeDone: 'Node finished',
+    graphTopology: 'Graph topology (fixed DAG)',
+    approve: '✅ Approve',
+    reject: '❌ Reject',
+    approvalNeeded: 'The agent is frozen, waiting for your decision',
+    robotsTitle: 'Strands on Robots',
+    robotsBody:
+      'The same Strands agents you just chatted with can drive physical robots: the agent loop picks tools like move, look, and speak — same SDK, same hooks, same observability, different body.',
+    robotsVideoSoon: 'Video coming soon — imagine a robot arm here taking orders from the Swarm demo.',
+    robotsHint: 'Ask the booth staff about running Strands on hardware.',
   },
   es: {
     username: 'Usuario',
@@ -134,5 +169,82 @@ export const STRINGS: Record<Lang, Strings> = {
     comparisonLabel: 'Comparación de tokens',
     tokensSaved: 'tokens ahorrados',
     readDocs: 'Lee la documentación de Strands',
+    clickToSee: 'clic para ver el razonamiento',
+    businessAttr: 'Atributo de negocio (span OTEL)',
+    groundTruth: 'Verdad de terreno (libro mayor)',
+    groundTruthEmpty: 'Aún no hay reservas registradas.',
+    memoryState: 'Memoria del agente (verdad de terreno)',
+    memoryEmpty: 'No hay notas guardadas.',
+    emailsBlocked: 'Fuga bloqueada en la frontera de la tool — salieron 0 correos.',
+    emailsLeaked: 'correo(s) salieron de verdad — ¡el gate falló!',
+    nodeDone: 'Nodo terminado',
+    graphTopology: 'Topología del grafo (DAG fijo)',
+    approve: '✅ Aprobar',
+    reject: '❌ Rechazar',
+    approvalNeeded: 'El agente está congelado esperando tu decisión',
+    robotsTitle: 'Strands en Robots',
+    robotsBody:
+      'Los mismos agentes Strands con los que acabas de chatear pueden manejar robots físicos: el agent loop elige tools como moverse, mirar y hablar — mismo SDK, mismos hooks, misma observabilidad, distinto cuerpo.',
+    robotsVideoSoon: 'Video próximamente — imagina aquí un brazo robótico recibiendo órdenes del demo de Swarm.',
+    robotsHint: 'Pregunta al equipo del stand por Strands en hardware.',
+  },
+  pt: {
+    username: 'Usuário',
+    password: 'Senha',
+    signIn: 'Entrar',
+    signOut: 'Sair',
+    connected: '● conectado',
+    connecting: '○ conectando…',
+    disconnected: '○ desconectado',
+    restart: '↺ Reiniciar demo',
+    working: 'o agente está trabalhando…',
+    typeMessage: 'Digite sua mensagem…',
+    send: 'Enviar',
+    underHood: '🔬 Por dentro',
+    whyInteresting: '🔍 Por que isso é interessante?',
+    waiting: 'Aguardando atividade',
+    waitingBody:
+      'Envie uma mensagem e veja o agent loop em ação: ciclos, chamadas de tools e métricas em tempo real.',
+    cycleLabel: 'Ciclo do agent loop',
+    reasoning: (cycle: string) => `Raciocinando… (ciclo ${cycle})`,
+    toolCall: '🔧 Chamada de tool',
+    result: '✅ Resultado',
+    blocked: '🔴 Bloqueado',
+    cycles: 'ciclos',
+    tokens: 'tokens',
+    duration: 'duração',
+    output: 'saída',
+    whyTitle: (title: string) => `🔍 ${title} — por que importa`,
+    gotIt: 'Entendi',
+    loginIncomplete: 'Login incompleto (requer troca de senha?)',
+    sendFailed: 'Falha ao enviar',
+    structuredLabel: 'Registro validado',
+    nodeActive: 'Agente trabalhando',
+    swarmSummary: 'Resumo do swarm',
+    phaseRunning: 'Executando',
+    phaseDone: 'Concluído',
+    phaseNaive: 'Agente naive',
+    phasePointer: 'Memory pointer',
+    comparisonLabel: 'Comparação de tokens',
+    tokensSaved: 'tokens economizados',
+    readDocs: 'Leia a documentação do Strands',
+    clickToSee: 'clique para ver o raciocínio',
+    businessAttr: 'Atributo de negócio (span OTEL)',
+    groundTruth: 'Verdade de base (livro-razão)',
+    groundTruthEmpty: 'Nenhuma reserva registrada ainda.',
+    memoryState: 'Memória do agente (verdade de base)',
+    memoryEmpty: 'Nenhuma nota salva.',
+    emailsBlocked: 'Exfiltração bloqueada na fronteira da tool — 0 e-mails saíram.',
+    emailsLeaked: 'e-mail(s) saíram de verdade — o gate falhou!',
+    nodeDone: 'Nó concluído',
+    graphTopology: 'Topologia do grafo (DAG fixo)',
+    approve: '✅ Aprovar',
+    reject: '❌ Rejeitar',
+    approvalNeeded: 'O agente está congelado aguardando sua decisão',
+    robotsTitle: 'Strands em Robôs',
+    robotsBody:
+      'Os mesmos agentes Strands com quem você acabou de conversar podem controlar robôs físicos: o agent loop escolhe tools como mover, olhar e falar — mesmo SDK, mesmos hooks, mesma observabilidade, corpo diferente.',
+    robotsVideoSoon: 'Vídeo em breve — imagine aqui um braço robótico recebendo ordens do demo de Swarm.',
+    robotsHint: 'Pergunte à equipe do estande sobre rodar Strands em hardware.',
   },
 }
