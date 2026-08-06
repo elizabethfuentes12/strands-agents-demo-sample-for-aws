@@ -17,8 +17,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-# web-infra/stacks/web_stack.py -> parents[2] is the repo root.
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]  # 02-frontend/
 WEB_DIR = REPO_ROOT / "web"
 
 

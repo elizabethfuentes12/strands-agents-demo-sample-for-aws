@@ -55,7 +55,7 @@ HTTP_DOMAIN=$(aws ssm get-parameter --name "$SSM_PREFIX/events_http_domain" \
   --region "$REGION" --query Parameter.Value --output text)
 RT_DOMAIN=$(aws ssm get-parameter --name "$SSM_PREFIX/events_realtime_domain" \
   --region "$REGION" --query Parameter.Value --output text)
-cat > "$ROOT/web/.env.local" <<EOF
+cat > "$ROOT/02-frontend/web/.env.local" <<EOF
 VITE_AWS_REGION=$REGION
 VITE_COGNITO_CLIENT_ID=$CLIENT_ID
 VITE_EVENTS_HTTP_DOMAIN=$HTTP_DOMAIN
@@ -71,7 +71,7 @@ echo "==> [6/7] Deploying 02-frontend (web hosting)"
 echo "==> [7/7] Smoke test"
 uv pip install --python "$ROOT/.venv/bin/python" -q websockets
 KIOSK_USERNAME="$KIOSK_USER" KIOSK_PASSWORD="$KIOSK_PASSWORD" AWS_REGION="$REGION" \
-  "$ROOT/.venv/bin/python" "$ROOT/scripts/smoke_test.py" agent-loop "What is 2+2?" || {
+  "$ROOT/.venv/bin/python" "$ROOT/01-infra/scripts/smoke_test.py" agent-loop "What is 2+2?" || {
     echo "Smoke test FAILED — check the troubleshooting section in README.md"; exit 1; }
 
 echo ""

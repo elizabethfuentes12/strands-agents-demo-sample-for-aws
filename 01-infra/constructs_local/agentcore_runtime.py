@@ -14,7 +14,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = Path(__file__).resolve().parents[1]  # 01-infra/
 
 
 class AgentCoreRuntime(Construct):
