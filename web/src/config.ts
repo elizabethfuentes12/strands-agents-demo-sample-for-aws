@@ -288,7 +288,7 @@ async for event in swarm.stream_async(question):
   },
   {
     slug: 'token-optimization',
-    docsUrl: 'https://strandsagents.com/docs/user-guide/concepts/agents/state/',
+    docsUrl: 'https://dev.to/aws/ai-context-window-overflow-memory-pointer-fix-3akc',
     code: `@tool(context=True)
 def fetch_logs_pointer(hours, tool_context):
     data = fetch(hours)               # 27k tokens of logs
@@ -661,6 +661,72 @@ def send_email(to_address, subject, body):
           'Uma nota salva no turno 1 sobrevive ao turno 2: a memória é persistente, e o veneno também. (Experimente em duas mensagens!)',
           'O modelo PODE ser convencido pela própria memória — obedece a nota e tenta enviar a reserva por e-mail. A defesa não vive no prompt.',
           'O gate é uma função pura na fronteira da tool: nenhuma instrução na memória pode editar email_is_allowed(). O e-mail é bloqueado mesmo quando o agente tenta — 0 vazamentos.',
+        ],
+      },
+    },
+  },
+  {
+    slug: 'chaos-resilience',
+    docsUrl: 'https://strandsagents.com/docs/user-guide/concepts/agents/hooks/',
+    code: `# Real keyless APIs (Open-Meteo, Wikipedia) + injected chaos.
+# ChaosHook corrupts one climate result to an impossible 999 C.
+class ResilienceHook(HookProvider):
+    def register_hooks(self, r):
+        r.add_callback(AfterToolCallEvent, self._recover)
+
+    def _recover(self, event):
+        temp = read_temp(event.result)
+        if temp is not None and not (-40 <= temp <= 45):
+            event.retry = True   # native Strands tool retry
+# Round 1 (no harness): the model reports 999 C.
+# Round 2 (with harness): the value is caught and re-fetched.`,
+    text: {
+      en: {
+        title: 'Chaos Testing',
+        category: 'Safety & Control',
+        description:
+          'A travel agent on REAL APIs (weather, Wikipedia). Press play: the same question runs twice under injected chaos. Without the harness the agent reports garbage; with it, the harness catches what the model can\'t. 🌪️',
+        suggestions: [
+          '▶ Run the chaos test on the climate agent',
+          'What is the historical climate like in Kyoto?',
+          'Tell me about Bogotá and its weather',
+        ],
+        why: [
+          'The tools call REAL keyless public APIs (Open-Meteo, Wikipedia) — no token, no mock. The chaos is injected deterministically by a hook, not by a flaky network.',
+          'A model cannot tell that "average temperature 999°C" is wrong — it will happily report corrupted tool output. The resilience lives OUTSIDE the model.',
+          'The harness is a Before/AfterToolCallEvent hook that verifies results against physical bounds and triggers Strands\' native tool retry (event.retry = True) — it catches what the model can\'t.',
+        ],
+      },
+      es: {
+        title: 'Pruebas de caos',
+        category: 'Seguridad y control',
+        description:
+          'Un agente de viajes sobre APIs REALES (clima, Wikipedia). Dale play: la misma pregunta corre dos veces con caos inyectado. Sin el harness el agente reporta basura; con él, el harness atrapa lo que el modelo no puede. 🌪️',
+        suggestions: [
+          '▶ Ejecuta la prueba de caos en el agente de clima',
+          '¿Cómo es el clima histórico de Kioto?',
+          'Háblame de Bogotá y su clima',
+        ],
+        why: [
+          'Las tools llaman APIs públicas REALES sin token (Open-Meteo, Wikipedia) — nada simulado. El caos lo inyecta un hook de forma determinista, no una red inestable.',
+          'Un modelo no puede saber que "temperatura media 999°C" está mal — reportará tranquilamente una salida corrupta. La resiliencia vive FUERA del modelo.',
+          'El harness es un hook Before/AfterToolCallEvent que verifica los resultados contra límites físicos y dispara el reintento nativo de Strands (event.retry = True) — atrapa lo que el modelo no puede.',
+        ],
+      },
+      pt: {
+        title: 'Testes de caos',
+        category: 'Segurança e controle',
+        description:
+          'Um agente de viagens sobre APIs REAIS (clima, Wikipedia). Aperte play: a mesma pergunta roda duas vezes com caos injetado. Sem o harness o agente reporta lixo; com ele, o harness pega o que o modelo não consegue. 🌪️',
+        suggestions: [
+          '▶ Execute o teste de caos no agente de clima',
+          'Como é o clima histórico de Kyoto?',
+          'Fale sobre Bogotá e seu clima',
+        ],
+        why: [
+          'As tools chamam APIs públicas REAIS sem token (Open-Meteo, Wikipedia) — nada simulado. O caos é injetado por um hook de forma determinística, não por uma rede instável.',
+          'Um modelo não consegue perceber que "temperatura média 999°C" está errada — vai reportar tranquilamente uma saída corrompida. A resiliência vive FORA do modelo.',
+          'O harness é um hook Before/AfterToolCallEvent que verifica os resultados contra limites físicos e dispara o retry nativo do Strands (event.retry = True) — pega o que o modelo não consegue.',
         ],
       },
     },

@@ -180,11 +180,37 @@ function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
         </div>
       )
     }
-    case 'phase':
+    case 'phase': {
+      const phaseName =
+        event.phase === 'naive'
+          ? t.phaseNaive
+          : event.phase === 'pointer'
+            ? t.phasePointer
+            : event.phase === 'chaos_naive'
+              ? t.phaseChaosNaive
+              : t.phaseChaosResilient
+      const bad = event.phase === 'naive' || event.phase === 'chaos_naive'
       return (
         <div className="card cycle">
-          <div className="label">{event.phase === 'naive' ? '🔴' : '🟢'} {t.phaseRunning}</div>
-          <strong>{event.phase === 'naive' ? t.phaseNaive : t.phasePointer}</strong>
+          <div className="label">{bad ? '🔴' : '🟢'} {t.phaseRunning}</div>
+          <strong>{phaseName}</strong>
+        </div>
+      )
+    }
+    case 'chaos_injected':
+      return (
+        <div className="card blocked">
+          <div className="label">💥 {t.chaosInjected}</div>
+          <strong>{String(event.tool)}</strong> — {String(event.effect)}
+          <div className="mono">{String(event.detail ?? '')}</div>
+        </div>
+      )
+    case 'recovered':
+      return (
+        <div className="card result">
+          <div className="label">🛟 {t.recovered}</div>
+          <strong>{String(event.tool)}</strong> — {String(event.action)}
+          <div className="mono">{String(event.detail ?? '')}</div>
         </div>
       )
     case 'phase_result':

@@ -1,7 +1,7 @@
 """Web hosting: private S3 + CloudFront (OAC), built and deployed by CDK.
 
-Pattern from ai-agent-website-primitive: local bundling runs `npm run build`
-at synth time; SPA routes 403/404 fall back to index.html.
+Local bundling runs `npm run build` at synth time (requires web/.env.local with
+the base-stack outputs). SPA routes 403/404 fall back to index.html.
 """
 import subprocess
 from pathlib import Path
@@ -17,6 +17,7 @@ from aws_cdk import (
 )
 from constructs import Construct
 
+# web-infra/stacks/web_stack.py -> parents[2] is the repo root.
 REPO_ROOT = Path(__file__).resolve().parents[2]
 WEB_DIR = REPO_ROOT / "web"
 
@@ -26,7 +27,14 @@ class WebStack(Stack):
         super().__init__(scope, construct_id, **kwargs)
 
         dist = WEB_DIR / "dist"
-        # Build the SPA at synth time (requires web/.env.local, see deploy.sh).
+        env_local = WEB_DIR / ".env.local"
+        if not env_local.exists():
+            raise FileNotFoundError(
+                f"{env_local} not found. Deploy the base stack first and write "
+                "web/.env.local from its outputs (see deploy.sh / README)."
+            )
+
+        # Build the SPA at synth time so dist/ reflects the current .env.local.
         subprocess.run(["npm", "install", "--silent"], cwd=WEB_DIR, check=True)
         subprocess.run(["npm", "run", "build"], cwd=WEB_DIR, check=True)
 
@@ -65,3 +73,4 @@ class WebStack(Stack):
         )
 
         CfnOutput(self, "WebUrl", value=f"https://{distribution.distribution_domain_name}")
+        CfnOutput(self, "BucketName", value=bucket.bucket_name)

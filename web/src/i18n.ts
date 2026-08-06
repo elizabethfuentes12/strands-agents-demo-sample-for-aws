@@ -67,6 +67,10 @@ export interface Strings {
   robotsBody: string
   robotsVideoSoon: string
   robotsHint: string
+  phaseChaosNaive: string
+  phaseChaosResilient: string
+  chaosInjected: string
+  recovered: string
 }
 
 export const STRINGS: Record<Lang, Strings> = {
@@ -106,7 +110,7 @@ export const STRINGS: Record<Lang, Strings> = {
     phaseRunning: 'Running',
     phaseDone: 'Finished',
     phaseNaive: 'Naive agent',
-    phasePointer: 'Memory pointer',
+    phasePointer: 'Memory pointer agent',
     comparisonLabel: 'Token comparison',
     tokensSaved: 'tokens saved',
     readDocs: 'Read the Strands docs',
@@ -128,6 +132,10 @@ export const STRINGS: Record<Lang, Strings> = {
       'The same Strands agents you just chatted with can drive physical robots: the agent loop picks tools like move, look, and speak — same SDK, same hooks, same observability, different body.',
     robotsVideoSoon: 'Video coming soon — imagine a robot arm here taking orders from the Swarm demo.',
     robotsHint: 'Ask the booth staff about running Strands on hardware.',
+    phaseChaosNaive: 'No harness',
+    phaseChaosResilient: 'Resilience harness',
+    chaosInjected: 'Chaos injected',
+    recovered: 'Harness recovered',
   },
   es: {
     username: 'Usuario',
@@ -165,7 +173,7 @@ export const STRINGS: Record<Lang, Strings> = {
     phaseRunning: 'Ejecutando',
     phaseDone: 'Terminado',
     phaseNaive: 'Agente naive',
-    phasePointer: 'Memory pointer',
+    phasePointer: 'Memory pointer agent',
     comparisonLabel: 'Comparación de tokens',
     tokensSaved: 'tokens ahorrados',
     readDocs: 'Lee la documentación de Strands',
@@ -187,6 +195,10 @@ export const STRINGS: Record<Lang, Strings> = {
       'Los mismos agentes Strands con los que acabas de chatear pueden manejar robots físicos: el agent loop elige tools como moverse, mirar y hablar — mismo SDK, mismos hooks, misma observabilidad, distinto cuerpo.',
     robotsVideoSoon: 'Video próximamente — imagina aquí un brazo robótico recibiendo órdenes del demo de Swarm.',
     robotsHint: 'Pregunta al equipo del stand por Strands en hardware.',
+    phaseChaosNaive: 'Sin harness',
+    phaseChaosResilient: 'Harness de resiliencia',
+    chaosInjected: 'Caos inyectado',
+    recovered: 'El harness se recuperó',
   },
   pt: {
     username: 'Usuário',
@@ -224,7 +236,7 @@ export const STRINGS: Record<Lang, Strings> = {
     phaseRunning: 'Executando',
     phaseDone: 'Concluído',
     phaseNaive: 'Agente naive',
-    phasePointer: 'Memory pointer',
+    phasePointer: 'Memory pointer agent',
     comparisonLabel: 'Comparação de tokens',
     tokensSaved: 'tokens economizados',
     readDocs: 'Leia a documentação do Strands',
@@ -246,5 +258,9 @@ export const STRINGS: Record<Lang, Strings> = {
       'Os mesmos agentes Strands com quem você acabou de conversar podem controlar robôs físicos: o agent loop escolhe tools como mover, olhar e falar — mesmo SDK, mesmos hooks, mesma observabilidade, corpo diferente.',
     robotsVideoSoon: 'Vídeo em breve — imagine aqui um braço robótico recebendo ordens do demo de Swarm.',
     robotsHint: 'Pergunte à equipe do estande sobre rodar Strands em hardware.',
+    phaseChaosNaive: 'Sem harness',
+    phaseChaosResilient: 'Harness de resiliência',
+    chaosInjected: 'Caos injetado',
+    recovered: 'O harness se recuperou',
   },
 }

@@ -22,6 +22,7 @@ Every demo runs on its own [Amazon Bedrock AgentCore Runtime](https://docs.aws.a
 | [08 · Graph Pipeline](./agents/08-graph/) | Multi-agent | A deterministic DAG: brainstormer → (fact-checker + critic) → editor | `GraphBuilder`, parallel nodes |
 | [09 · Agents as Tools](./agents/09-agents-as-tools/) | Multi-agent | A concierge delegates to specialist agents called like functions | `agent.as_tool()` |
 | [10 · Memory Poisoning](./agents/10-memory-poisoning/) | Safety & Control | Plant a malicious note in turn 1, trigger it in turn 2 — the tool boundary blocks exfiltration | `agent.state`, pure-function gate |
+| [11 · Chaos Testing](./agents/11-chaos-resilience/) | Safety & Control | Press play: the same question runs twice under injected chaos. Without the harness the agent reports garbage (999 °C); with it, a hook catches the impossible value and retries | `AfterToolCallEvent`, `event.retry` |
 | 🤖 Robots | (placeholder) | Space reserved for a live-robot video: the same agent loop driving physical hardware | — |
 
 ## Architecture
@@ -128,11 +129,19 @@ Still stuck? Open an issue in this repository, or check the [Strands Agents docu
 ## Project layout
 
 ```
-infra/     CDK app: base stack (Cognito, AppSync Events, dispatcher) + one stack per demo + web hosting
-agents/    One directory per demo + common/ (event protocol, streaming helpers)
-web/       React + Vite SPA (chat, insights panel, EN/ES/PT, Strands dark theme)
-scripts/   deployment package builder + end-to-end smoke tests
-docs/      architecture.drawio + Canva image prompts
+infra/       CDK app: base stack (Cognito, AppSync Events, dispatcher) + one stack per demo
+web-infra/   Standalone CDK app: static web hosting (private S3 + CloudFront/OAC)
+agents/      One directory per demo + common/ (event protocol, streaming helpers)
+web/         React + Vite SPA (chat, insights panel, EN/ES/PT, Strands dark theme)
+scripts/     deployment package builder + end-to-end smoke tests
+docs/        architecture.drawio + Canva image prompts
+```
+
+The web hosting is a **separate CDK app** (`web-infra/`) so the public site can be
+deployed and torn down independently of the agent runtimes:
+
+```bash
+cd web-infra && cdk deploy    # after web/.env.local exists (see deploy.sh)
 ```
 
 ## Credits

@@ -11,7 +11,6 @@ import aws_cdk as cdk
 
 from stacks.base_stack import BaseStack
 from stacks.demo_stack import DemoStack
-from stacks.web_stack import WebStack
 
 app = cdk.App()
 
@@ -33,6 +32,7 @@ DEMOS = [
     {"demo_id": "08", "slug": "graph", "agent_dir": "08-graph"},
     {"demo_id": "09", "slug": "agents-as-tools", "agent_dir": "09-agents-as-tools"},
     {"demo_id": "10", "slug": "memory-poisoning", "agent_dir": "10-memory-poisoning"},
+    {"demo_id": "11", "slug": "chaos-resilience", "agent_dir": "11-chaos-resilience"},
 ]
 
 for demo in DEMOS:
@@ -46,10 +46,7 @@ for demo in DEMOS:
     )
     stack.add_dependency(base)
 
-# Web hosting is opt-in (-c deploy_web=true): it needs web/.env.local, which
-# deploy.sh generates from the base stack outputs on the first pass.
-if app.node.try_get_context("deploy_web") == "true":
-    web = WebStack(app, "StrandsDemosWebStack", env=env)
-    web.add_dependency(base)
+# Web hosting (S3 + CloudFront) lives in its own CDK app under ../web-infra so
+# the site can be deployed and torn down independently of the agent runtimes.
 
 app.synth()

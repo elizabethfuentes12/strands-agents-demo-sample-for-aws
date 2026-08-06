@@ -52,8 +52,8 @@ VITE_EVENTS_HTTP_DOMAIN=$HTTP_DOMAIN
 VITE_EVENTS_REALTIME_DOMAIN=$RT_DOMAIN
 EOF
 
-echo "==> [6/7] Web hosting (S3 + CloudFront)"
-(cd "$ROOT/infra" && JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy StrandsDemosWebStack -c deploy_web=true --require-approval never)
+echo "==> [6/7] Web hosting (S3 + CloudFront) — standalone app in web-infra/"
+(cd "$ROOT/web-infra" && JSII_SILENCE_WARNING_UNTESTED_NODE_VERSION=1 npx cdk deploy --all --require-approval never)
 
 echo "==> [7/7] Smoke test (agent-loop, end to end)"
 uv pip install --python "$ROOT/.venv/bin/python" -q websockets

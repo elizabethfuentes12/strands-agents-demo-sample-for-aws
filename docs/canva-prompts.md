@@ -58,12 +58,24 @@ Estilo general: dark mode, glow verde neón sutil, tipografía sans-serif bold, 
 > "−95%". Title: "Stop Wasting Tokens". Flat vector, dramatic contrast between
 > the red and green bars.
 
-## 7. Diagrama de arquitectura estilizado (1200×675, opcional para README/talks)
+## 7. Card demo 11 — Chaos Testing (800×450)
+
+> Dark background (#17181c). Center: a glowing green tool-result card showing a
+> thermometer with an absurd "999 °C" reading and a small red "CHAOS" stamp.
+> A translucent neon-green shield labeled "resilience hook" intercepts it with
+> a circular retry arrow (↻), and behind it a second, calm card shows a sane
+> "17.5 °C". Split label: left half "Round 1 · no harness → 999 °C" in red,
+> right half "Round 2 · harness → 17.5 °C" in green. Title top-left: "Chaos
+> Testing — the harness catches what the model can't". Flat vector, dark mode,
+> red (#ff5d5d) only on the corrupted value, neon green (#00ff77) on the shield
+> and retry arrow.
+
+## 8. Diagrama de arquitectura estilizado (1200×675, opcional para README/talks)
 
 > Dark isometric-flat architecture diagram. Left: a laptop with the demo UI.
 > Arrows flow right through: a Cognito icon (key), an AppSync Events icon
 > (bidirectional WebSocket arrows labeled "inbox" going right and "out" coming
-> back), a Lambda icon, and five small microVM boxes each containing a robot
-> icon (labeled 01, 02, 03, 06, 07). Green glow on the arrows, AWS service
-> icons in their official shapes but recolored to match the dark/green theme.
-> Caption: "One runtime per demo · typed events · real-time".
+> back), a Lambda icon, and a stacked row of small microVM boxes each containing
+> a robot icon (labeled 01 … 11, "one runtime per demo"). Green glow on the
+> arrows, AWS service icons in their official shapes but recolored to match the
+> dark/green theme. Caption: "One runtime per demo · typed events · real-time".

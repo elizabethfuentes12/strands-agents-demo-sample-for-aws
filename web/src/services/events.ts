@@ -27,6 +27,8 @@ export interface AgentEvent {
     | 'phase_result'
     | 'comparison'
     | 'memory_state'
+    | 'chaos_injected'
+    | 'recovered'
   seq?: number
   [key: string]: unknown
 }
@@ -88,8 +90,10 @@ export class DemoSession {
       // Auto-reconnect with the SAME sessionId so the conversation (and the
       // agent's memory in its AgentCore microVM) survives a dropped socket.
       ws.onclose = () => {
+        // A deliberate close (demo switch / logout) must NOT push status to the
+        // shared UI state: its late-arriving onclose would otherwise overwrite
+        // the NEW session's 'ready' with 'closed' and disable Send.
         if (this.closedByUser) {
-          this.onStatus('closed')
           return
         }
         if (this.reconnectAttempts >= 5) {

@@ -6,6 +6,8 @@ __pycache__/
 
 # CDK
 infra/cdk.out/
+web-infra/cdk.out/
+cdk.out/
 cdk.context.json
 
 # Agent build artifacts
