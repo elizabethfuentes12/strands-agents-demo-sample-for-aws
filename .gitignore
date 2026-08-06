@@ -1,0 +1,23 @@
+# Python
+.venv/
+.venv-test/
+__pycache__/
+*.pyc
+
+# CDK
+infra/cdk.out/
+cdk.context.json
+
+# Agent build artifacts
+agents/*/deployment_package/
+agents/*/deployment_package.zip
+
+# Web
+web/node_modules/
+web/dist/
+web/.env.local
+web/.env*.local
+
+# OS / editor
+.DS_Store
+.claude/
