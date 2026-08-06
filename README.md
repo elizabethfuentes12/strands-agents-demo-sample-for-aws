@@ -27,23 +27,29 @@ Every demo runs on its own [Amazon Bedrock AgentCore Runtime](https://docs.aws.a
 
 ## Architecture
 
-The architecture in ASCII:
+![Architecture diagram](./assets/architecture.png)
 
+The browser publishes a prompt to AppSync Events on `inbox/<demo>/<session>`. AppSync invokes the dispatcher Lambda, which calls `invoke_agent_runtime` on the demo's AgentCore Runtime. The runtime streams typed JSON events (SSE) back through the dispatcher to `out/<demo>/<session>`, where the browser is subscribed. The chat renders `token` events; the insights panel renders everything else.
+
+### How the agents deploy: one CDK app, many stacks
+
+There is a single CDK app (`infra/app.py`), yet the account ends up with one CloudFormation stack per demo. The app iterates over a `DEMOS` list (11 entries) and instantiates a `DemoStack` for each one, on top of a shared `BaseStack`. See [`infra/app.py:22-47`](./infra/app.py):
+
+```python
+base = BaseStack(app, "StrandsDemosBaseStack", env=env)
+
+DEMOS = [
+    {"demo_id": "01", "slug": "agent-loop", "agent_dir": "01-agent-loop"},
+    # ... 11 entries total
+    {"demo_id": "11", "slug": "chaos-resilience", "agent_dir": "11-chaos-resilience"},
+]
+
+for demo in DEMOS:
+    stack = DemoStack(app, f"StrandsDemo{demo['demo_id']}Stack", ...)
+    stack.add_dependency(base)   # every demo stack waits for the shared base
 ```
-Browser (React SPA, Cognito JWT)
-   │  publish prompt ──────────────► AppSync Events  inbox/<demo>/<session>
-   │                                      │ direct Lambda integration (async)
-   │                                      ▼
-   │                              Dispatcher Lambda
-   │                                      │ invoke_agent_runtime (session ≥33 chars,
-   │                                      │ retries 424/429/500, read_timeout 900s)
-   │                                      ▼
-   │                              AgentCore Runtime (one per demo) ──► Amazon Bedrock (Nova Pro)
-   │                                      │ typed JSON events (SSE)
-   │  subscribe ◄────────────────  AppSync Events  out/<demo>/<session>
-   ▼
-Chat renders `token` events · Insights panel renders everything else
-```
+
+So `cdk deploy --all` synthesizes and deploys **12 stacks**: `StrandsDemosBaseStack` (Cognito, AppSync Events, dispatcher Lambda) plus `StrandsDemo01Stack` through `StrandsDemo11Stack`, one AgentCore Runtime each. Adding a demo is a one-line change to `DEMOS`, no new CDK file needed. Because each demo is its own stack you can also deploy or destroy them one at a time (`cdk deploy StrandsDemo07Stack`).
 
 Key design decisions:
 
@@ -55,7 +61,28 @@ Key design decisions:
 
 ## Quick Start
 
-Prerequisites: an AWS account with Amazon Bedrock model access (Amazon Nova Pro by default), Python 3.11+, Node.js 20+, [uv](https://docs.astral.sh/uv/), AWS CDK v2.
+### Prerequisites
+
+Before you deploy, make sure you have all of the following. `deploy.sh` uses every one of these.
+
+**Tooling on your machine**
+
+| Requirement | Why it is needed | Check |
+|-------------|------------------|-------|
+| Python 3.11+ | CDK app and agent runtimes target Python 3.11 (`uv venv --python 3.11`) | `python3 --version` |
+| [uv](https://docs.astral.sh/uv/) | creates the virtualenv and installs Python dependencies | `uv --version` |
+| Node.js 20+ | runs the CDK CLI (via `npx cdk`) and the Vite web app | `node --version` |
+| [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) | reads stack outputs from SSM and creates the Cognito kiosk user | `aws --version` |
+| AWS CDK v2 | synthesizes and deploys the stacks (invoked through `npx cdk`, no global install required) | `npx cdk --version` |
+| OpenSSL | generates a random kiosk password when `KIOSK_PASSWORD` is not set | `openssl version` |
+
+**AWS account setup**
+
+- **Credentials configured** for the target account, for example via `aws configure`, `AWS_PROFILE`, or SSO. Confirm with `aws sts get-caller-identity`.
+- **Amazon Bedrock model access** to Amazon Nova Pro (`us.amazon.nova-pro-v1:0`) in your Region. Request access in the Bedrock console under Model access. To use a different model, set `MODEL_ID` to any model your account can invoke.
+- **Region.** The stacks default to `us-east-1`. Override with `AWS_REGION` (used by `deploy.sh`).
+- **CDK bootstrap.** The environment must be bootstrapped for CDK v2. `deploy.sh` checks for the `CDKToolkit` stack and runs `cdk bootstrap` automatically if it is missing.
+- **IAM permissions** to create the resources these stacks use: Amazon Bedrock AgentCore, AWS AppSync, AWS Lambda, Amazon Cognito, Amazon S3, Amazon CloudFront, AWS IAM, AWS CloudFormation, and AWS Systems Manager Parameter Store.
 
 ### One command (recommended)
 
@@ -67,38 +94,45 @@ KIOSK_PASSWORD='<choose-a-strong-password>' ./deploy.sh
 
 ### Manual steps
 
-```bash
-# 1. Infra (all stacks: Cognito + AppSync Events + one stack per demo)
-python3 -m venv .venv && source .venv/bin/activate
-uv pip install -r infra/requirements.txt
-cd infra && cdk deploy --all --require-approval never
+All commands below start from the repository root. Each step opens with a `cd` back to the root so you never lose track of where you are.
 
-# 2. Create the kiosk user
+```bash
+# 0. From the repository root, create and activate a virtualenv
+python3 -m venv .venv && source .venv/bin/activate
+
+# 1. Infra (all stacks: Cognito + AppSync Events + one stack per demo)
+uv pip install -r infra/requirements.txt
+(cd infra && cdk deploy --all --require-approval never)
+
+# 2. Create the kiosk user (use the User Pool id from the stack outputs)
 aws cognito-idp admin-create-user --user-pool-id <pool-id> --username kiosk --message-action SUPPRESS
 aws cognito-idp admin-set-user-password --user-pool-id <pool-id> --username kiosk --password '<password>' --permanent
 
-# 3. Web app (fill web/.env.local with the stack outputs, then run locally)
-cd ../web && npm install && npm run dev
+# 3. Web app: fill web/.env.local with the stack outputs, then run it locally
+(cd web && npm install && npm run dev)
 
-# 4. Smoke test the full pipeline
+# 4. Smoke test the full pipeline (run from the repository root)
 python scripts/smoke_test.py agent-loop "What is 23*47?"
 ```
+
+Wrapping the `cd` in parentheses runs it in a subshell, so the directory change is scoped to that one command and you return to the repository root automatically.
 
 ## Estimated cost
 
 This is a **community sample designed to be cheap to run and free to tear down**. There are no always-on servers: AgentCore Runtime, Lambda, and AppSync Events are all consumption-priced, and `cdk destroy` removes every resource.
 
-All rates below are **US East (N. Virginia), on-demand, as published on the AWS pricing pages** ([AgentCore](https://aws.amazon.com/bedrock/agentcore/pricing/) · [Bedrock/Nova](https://aws.amazon.com/bedrock/pricing/) · [AppSync](https://aws.amazon.com/appsync/pricing/)). Prices change, so verify before you rely on them.
+All rates below are **US East (N. Virginia), on-demand, as published on the AWS pricing pages**. Prices change, so verify before you rely on them; the last column links each service's live pricing page so you can go deeper.
 
-| Service | Rate (us-east-1) |
-|---------|------------------|
-| AgentCore Runtime (CPU) | $0.0895 per vCPU-hour (per-second, active CPU only; I/O wait is free) |
-| AgentCore Runtime (memory) | $0.00945 per GB-hour (peak memory, billed until session termination) |
-| Amazon Nova Pro (input) | $0.00092 per 1,000 tokens |
-| Amazon Nova Pro (output) | $0.00368 per 1,000 tokens |
-| AppSync Events | $1.00 per million operations; $0.08 per million connection-minutes |
-| Amazon Cognito | a single kiosk user is well within the free tier |
-| S3 + CloudFront (static site) | pennies per month at booth traffic; first 10 TB CloudFront egress ≈ free tier |
+| 💵 Service | What you pay for | Rate (us-east-1) | 🔗 Pricing page |
+|-----------|------------------|------------------|-----------------|
+| 🧠 **AgentCore Runtime** (CPU) | active CPU, per second; I/O wait is free | `$0.0895` / vCPU-hour | [AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) |
+| 🧠 **AgentCore Runtime** (memory) | peak memory, billed until the session ends | `$0.00945` / GB-hour | [AgentCore pricing](https://aws.amazon.com/bedrock/agentcore/pricing/) |
+| 🤖 **Amazon Nova Pro** (input) | prompt tokens sent to the model | `$0.00092` / 1K tokens | [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
+| 🤖 **Amazon Nova Pro** (output) | tokens the model generates | `$0.00368` / 1K tokens | [Bedrock pricing](https://aws.amazon.com/bedrock/pricing/) |
+| 🔌 **AWS AppSync Events** | pub/sub operations + connection time | `$1.00` / M ops · `$0.08` / M conn-min | [AppSync pricing](https://aws.amazon.com/appsync/pricing/) |
+| 🔑 **Amazon Cognito** | monthly active users | one kiosk user is well within the free tier | [Cognito pricing](https://aws.amazon.com/cognito/pricing/) |
+| 🌐 **S3 + CloudFront** (static site) | storage + egress | pennies/month at booth traffic; first 1 TB CloudFront egress free | [S3](https://aws.amazon.com/s3/pricing/) · [CloudFront](https://aws.amazon.com/cloudfront/pricing/) |
+| 📊 **CloudWatch** (logs + traces) | ingested log volume + stored traces | first 5 GB logs/month free; verbose logging is the sneakiest cost | [CloudWatch pricing](https://aws.amazon.com/cloudwatch/pricing/) |
 
 **Worked example, a modest booth/community month of ~1,000 interactions** (assumptions stated so you can re-run the math): ~2,500 input + ~400 output tokens and ~5 seconds of active runtime per interaction.
 
