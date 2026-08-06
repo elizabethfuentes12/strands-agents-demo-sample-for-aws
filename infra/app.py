@@ -35,6 +35,7 @@ DEMOS = [
     {"demo_id": "11", "slug": "chaos-resilience", "agent_dir": "11-chaos-resilience"},
 ]
 
+demo_stacks = []
 for demo in DEMOS:
     stack = DemoStack(
         app,
@@ -45,6 +46,8 @@ for demo in DEMOS:
         env=env,
     )
     stack.add_dependency(base)
+    demo_stacks.append(stack)
+
 
 # Web hosting (S3 + CloudFront) lives in its own CDK app under ../web-infra so
 # the site can be deployed and torn down independently of the agent runtimes.

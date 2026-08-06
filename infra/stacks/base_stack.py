@@ -57,13 +57,18 @@ class BaseStack(Stack):
             memory_size=512,
             log_retention=logs.RetentionDays.ONE_WEEK,
         )
+        # Scope InvokeAgentRuntime to runtimes in this account/region whose name
+        # starts with "strands_demo_" — avoids resources=["*"] without a
+        # cross-stack ARN dependency cycle.
         dispatcher.add_to_role_policy(
             iam.PolicyStatement(
                 actions=[
                     "bedrock-agentcore:InvokeAgentRuntime",
                     "bedrock-agentcore:InvokeAgentRuntimeForUser",
                 ],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:bedrock-agentcore:{self.region}:{self.account}:runtime/strands_demo_*"
+                ],
             )
         )
         dispatcher.add_to_role_policy(
@@ -160,3 +165,4 @@ class BaseStack(Stack):
                 string_value=value,
             )
             CfnOutput(self, f"Out{name.title().replace('_', '')}", value=value)
+

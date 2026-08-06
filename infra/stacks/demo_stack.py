@@ -46,6 +46,8 @@ class DemoStack(Stack):
             environment_variables=env_vars,
         )
 
+        self.runtime_arn = runtime.runtime_arn
+
         ssm.StringParameter(
             self,
             "RuntimeArnParam",
