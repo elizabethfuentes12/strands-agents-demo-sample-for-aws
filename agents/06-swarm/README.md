@@ -1,5 +1,7 @@
 # 06 · Live Swarm
 
+![Live Swarm](../../assets/card-06-swarm.png)
+
 Researcher, analyst, and writer collaborating, with animated handoffs and per-agent token cost.
 
 ## What it shows

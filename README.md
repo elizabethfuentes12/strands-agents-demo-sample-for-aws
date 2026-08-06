@@ -1,5 +1,7 @@
 # Strands Agents Demo Showcase
 
+![Strands Agents Demo Showcase](./assets/hero.png)
+
 An interactive, event-booth-ready web app that shows off the [Strands Agents](https://strandsagents.com/) framework: a chat on the left, and a live **"under the hood" panel** on the right that visualizes what the agent is actually doing in real time (cycles, tool calls, blocked actions, handoffs, and token usage).
 
 Every demo runs on its own [Amazon Bedrock AgentCore Runtime](https://docs.aws.amazon.com/bedrock-agentcore/latest/devguide/what-is-bedrock-agentcore.html), deployed with AWS CDK. The browser talks to the agents through [AWS AppSync Events](https://docs.aws.amazon.com/appsync/latest/eventapi/event-api-welcome.html) (serverless WebSockets) secured with Amazon Cognito. The UI ships in **English, Spanish, and Portuguese**.

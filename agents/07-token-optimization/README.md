@@ -1,5 +1,7 @@
 # 07 · Stop Wasting Tokens
 
+![Stop Wasting Tokens](../../assets/card-07-token-optimization.png)
+
 The same question, two agents: one floods the model context with raw logs, the other keeps the data out of context behind a ~50-token pointer. Live meters show roughly 27k tokens vs 1.4k (about a 95% cut).
 
 ## What it shows

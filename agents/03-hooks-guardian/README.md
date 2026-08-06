@@ -1,5 +1,7 @@
 # 03 · Hooks: the Guardian
 
+![Hooks: the Guardian](../../assets/card-03-hooks-guardian.png)
+
 Visitors try to talk the agent into dangerous actions; hooks block them with visible red cards.
 
 ## What it shows

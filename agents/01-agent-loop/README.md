@@ -1,5 +1,7 @@
 # 01 · Live Agent Loop
 
+![Live Agent Loop](../../assets/card-01-agent-loop.png)
+
 The Reason to Tool to Respond loop animating in real time, with per-tool latency and token metrics.
 
 ## What it shows

@@ -1,5 +1,7 @@
 # 02 · Structured Output
 
+![Structured Output](../../assets/card-02-structured-output.png)
+
 Free text becomes a validated, typed record, field by field.
 
 ## What it shows

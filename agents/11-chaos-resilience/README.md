@@ -1,5 +1,7 @@
 # 11 · Chaos Testing
 
+![Chaos Testing](../../assets/card-11-chaos-resilience.png)
+
 Press play and the same question runs twice under injected chaos. Without the harness the agent reports garbage (an average temperature of 999 C); with the harness, a hook catches the impossible value and retries, so the answer is correct.
 
 ## What it shows
