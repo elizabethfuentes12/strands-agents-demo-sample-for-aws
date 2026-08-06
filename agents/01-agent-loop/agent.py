@@ -20,7 +20,7 @@ from tools import aws_service_lookup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo01")
 
-MODEL_ID = os.environ.get("MODEL_ID", "us.anthropic.claude-sonnet-4-20250514-v1:0")
+MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
 
 SYSTEM_PROMPT = """You are a friendly demo assistant at an AWS event stand, \
 showcasing the Strands Agents framework. Keep answers short (2-4 sentences), \
