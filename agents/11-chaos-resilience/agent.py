@@ -23,6 +23,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from hooks import ChaosHook, ResilienceHook
 from streaming import stream_agent_events
 from tools import climate_summary, geocode_place, wikipedia_summary
@@ -40,6 +41,8 @@ with those coordinates. Always report the numbers the tools return. Keep answers
 short (2-3 sentences) and reply in the user's language."""
 
 DEFAULT_PROMPT = "What is the historical climate like in Lisbon?"
+
+POLICY = guardrails.Policy(topic="chaos testing and agent resilience")
 
 app = BedrockAgentCoreApp()
 
@@ -70,6 +73,13 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list):
 @app.entrypoint
 async def invoke(payload, context=None):
     prompt = (payload or {}).get("prompt", "") or DEFAULT_PROMPT
+    session_id = getattr(context, "session_id", None) or "local"
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
+        return
 
     try:
         # Round 1: chaos only, no harness — the agent trusts the corrupted data.

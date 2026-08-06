@@ -18,6 +18,7 @@ from strands.hooks import AfterToolCallEvent, HookProvider, HookRegistry
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from streaming import stream_agent_events
 from tools import book_flight, get_weather, query_bookings, search_flights
 
@@ -31,6 +32,8 @@ SYSTEM_PROMPT = """You are a travel assistant in a demo. Search flights, check \
 weather, and book flights when asked. Book the cheapest matching offer without \
 asking for confirmation (it's a simulation). Keep answers short. Reply in the \
 user's language."""
+
+POLICY = guardrails.Policy(topic="a travel assistant with full observability")
 
 app = BedrockAgentCoreApp()
 
@@ -98,6 +101,12 @@ async def invoke(payload, context=None):
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
         yield json.dumps(ev.done())
+        return
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
         return
 
     agent, hook = _get_agent(session_id)

@@ -13,6 +13,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from tools import analyze_stored_logs, fetch_logs_pointer, naive_fetch_logs
 
 logging.basicConfig(level=logging.INFO)
@@ -23,6 +24,8 @@ MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
 BASE_PROMPT = (
     "You are an SRE assistant. Answer briefly (2-3 sentences) in the user's language."
 )
+
+POLICY = guardrails.Policy(topic="token optimization for agents")
 
 app = BedrockAgentCoreApp()
 
@@ -41,6 +44,13 @@ async def invoke(payload, context=None):
     prompt = (payload or {}).get("prompt", "") or (
         "Analyze the last 3 hours of logs: which service has the most errors?"
     )
+    session_id = getattr(context, "session_id", None) or "local"
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
+        return
 
     model = BedrockModel(model_id=MODEL_ID)
     try:

@@ -15,11 +15,14 @@ from strands.models import BedrockModel
 from strands.multiagent import GraphBuilder
 
 import demo_events as ev
+import guardrails
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo08")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
+
+POLICY = guardrails.Policy(topic="a multi-agent graph pipeline")
 
 app = BedrockAgentCoreApp()
 
@@ -74,9 +77,16 @@ def _build_graph():
 @app.entrypoint
 async def invoke(payload, context=None):
     prompt = (payload or {}).get("prompt", "")
+    session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
         yield json.dumps(ev.done())
+        return
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
         return
 
     graph = _build_graph()

@@ -14,6 +14,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from streaming import stream_agent_events
 from tools import book_flight, search_flights
 
@@ -26,6 +27,8 @@ SYSTEM_PROMPT = """You are a travel booking assistant in a demo. Search flights 
 when asked, pick the best (cheapest) option, and book it with book_flight — do \
 not ask the user for permission yourself; the booking tool has its own human \
 approval step built in. Keep answers short. Reply in the user's language."""
+
+POLICY = guardrails.Policy(topic="booking flights with human-in-the-loop approval")
 
 app = BedrockAgentCoreApp()
 
@@ -82,6 +85,11 @@ async def invoke(payload, context=None):
         if not prompt:
             yield json.dumps(ev.error("Empty prompt"))
             yield json.dumps(ev.done())
+            return
+        verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+        if verdict.blocked:
+            for event in guardrails.blocked_events(verdict):
+                yield json.dumps(event)
             return
 
     try:

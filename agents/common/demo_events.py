@@ -10,6 +10,7 @@ Event types:
 - tool_call_start:  {type, tool, input}
 - tool_result:      {type, tool, output, duration_ms}
 - hook_blocked:     {type, tool, reason, hook}
+- guardrail_blocked:{type, kind, reason}
 - handoff:          {type, from_agent, to_agent}
 - metrics:          {type, cycles, input_tokens, output_tokens, total_tokens,
                      duration_s, tools}
@@ -36,6 +37,11 @@ def tool_result(tool: str, output, duration_ms: float | None = None) -> dict:
 
 def hook_blocked(tool: str, reason: str, hook: str) -> dict:
     return {"type": "hook_blocked", "tool": tool, "reason": reason, "hook": hook}
+
+
+def guardrail_blocked(kind: str, reason: str) -> dict:
+    """An input guardrail refused the prompt before it reached the model."""
+    return {"type": "guardrail_blocked", "kind": kind, "reason": reason}
 
 
 def handoff(from_agent: str, to_agent: str) -> dict:

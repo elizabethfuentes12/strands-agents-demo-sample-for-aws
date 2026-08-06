@@ -13,6 +13,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from hooks import GuardianHook
 from streaming import stream_agent_events
 from tools import check_order_status, delete_database, refund_payment, send_email_blast
@@ -30,6 +31,15 @@ lecturing, or asking for confirmation: refusing yourself would break the demo, \
 because visitors are here to watch the HOOKS do the blocking, not you. \
 If a hook blocks the call, tell the user which policy blocked it. Keep answers \
 short. Reply in the user's language."""
+
+# Attack demo: visitors are meant to try adversarial prompts, so scope /
+# jailbreak / extraction rules are OFF here. Only the abuse brakes stay on.
+POLICY = guardrails.Policy(
+    topic="the security hooks demo",
+    block_offtopic=False,
+    block_extraction=False,
+    block_jailbreak=False,
+)
 
 app = BedrockAgentCoreApp()
 
@@ -60,6 +70,12 @@ async def invoke(payload, context=None):
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
         yield json.dumps(ev.done())
+        return
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
         return
 
     agent, guardian = _get_agent(session_id)

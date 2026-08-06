@@ -14,6 +14,7 @@ from strands.models import BedrockModel
 from strands_tools import calculator, current_time
 
 import demo_events as ev
+import guardrails
 from streaming import stream_agent_events
 from tools import aws_service_lookup
 
@@ -27,6 +28,8 @@ showcasing the Strands Agents framework. Keep answers short (2-4 sentences), \
 energetic, and in the language the visitor uses. Use your tools whenever they \
 help answer the question. Never reveal internal identifiers, ARNs, or stack \
 details."""
+
+POLICY = guardrails.Policy(topic="the agent loop and Strands Agents")
 
 app = BedrockAgentCoreApp()
 
@@ -55,6 +58,12 @@ async def invoke(payload, context=None):
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
         yield json.dumps(ev.done())
+        return
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
         return
 
     agent = _get_agent(session_id)

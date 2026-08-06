@@ -14,6 +14,7 @@ from strands import Agent
 from strands.models import BedrockModel
 
 import demo_events as ev
+import guardrails
 from streaming import stream_agent_events
 
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +27,8 @@ Delegate every question to the right specialist tool: aws_expert for AWS/cloud \
 questions, agents_expert for AI-agent/Strands questions, event_guide for \
 questions about the booth or event. Synthesize their answer briefly in the \
 user's language. Always use at least one specialist."""
+
+POLICY = guardrails.Policy(topic="specialist agents used as tools")
 
 app = BedrockAgentCoreApp()
 
@@ -80,6 +83,12 @@ async def invoke(payload, context=None):
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))
         yield json.dumps(ev.done())
+        return
+
+    verdict = guardrails.check(prompt, POLICY, session_id=session_id)
+    if verdict.blocked:
+        for event in guardrails.blocked_events(verdict):
+            yield json.dumps(event)
         return
 
     agent = _get_agent(session_id)
