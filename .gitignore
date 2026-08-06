@@ -20,6 +20,9 @@ web/dist/
 web/.env.local
 web/.env*.local
 
+# Internal docs (not published)
+docs/
+
 # OS / editor
 .DS_Store
 .claude/

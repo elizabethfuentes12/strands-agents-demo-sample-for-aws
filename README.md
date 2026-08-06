@@ -27,7 +27,7 @@ Every demo runs on its own [Amazon Bedrock AgentCore Runtime](https://docs.aws.a
 
 ## Architecture
 
-📐 **Editable diagram:** [`docs/architecture.drawio`](./docs/architecture.drawio) — open it at [app.diagrams.net](https://app.diagrams.net/) (File → Open) or with the Draw.io VS Code extension, and export a PNG/SVG if you want to embed it. The same architecture in ASCII:
+The architecture in ASCII:
 
 ```
 Browser (React SPA, Cognito JWT)
@@ -134,7 +134,6 @@ web-infra/   Standalone CDK app: static web hosting (private S3 + CloudFront/OAC
 agents/      One directory per demo + common/ (event protocol, streaming helpers)
 web/         React + Vite SPA (chat, insights panel, EN/ES/PT, Strands dark theme)
 scripts/     deployment package builder + end-to-end smoke tests
-docs/        architecture.drawio + Canva image prompts
 ```
 
 The web hosting is a **separate CDK app** (`web-infra/`) so the public site can be
