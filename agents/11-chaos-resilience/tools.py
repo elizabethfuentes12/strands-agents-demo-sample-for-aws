@@ -41,6 +41,9 @@ _FALLBACK_CLIMATE = {
 
 
 def _get_json(url: str) -> dict:
+    parsed = urllib.parse.urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Disallowed URL scheme: {parsed.scheme!r}")
     request = urllib.request.Request(url, headers=_UA)
     with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:
         return json.load(response)

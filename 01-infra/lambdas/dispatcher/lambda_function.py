@@ -51,6 +51,15 @@ def _runtime_arn(demo: str) -> str:
     return _runtime_arn_cache[demo]
 
 
+def _safe_url(url: str) -> str:
+    """Validate that a URL uses https. Raises ValueError for other schemes."""
+    from urllib.parse import urlparse
+    parsed = urlparse(url)
+    if parsed.scheme != "https":
+        raise ValueError(f"Disallowed URL scheme: {parsed.scheme!r}")
+    return url
+
+
 def _publish(channel: str, events: list) -> None:
     """Publish up to 5 events per call to the Events API HTTP endpoint."""
     for i in range(0, len(events), 5):
@@ -58,7 +67,7 @@ def _publish(channel: str, events: list) -> None:
             {"channel": channel, "events": [json.dumps(e) for e in events[i : i + 5]]}
         )
         req = urllib.request.Request(
-            f"https://{EVENTS_HTTP_DOMAIN}/event",
+            _safe_url(f"https://{EVENTS_HTTP_DOMAIN}/event"),
             data=body.encode(),
             headers={
                 "content-type": "application/json",

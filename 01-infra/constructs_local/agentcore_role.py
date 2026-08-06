@@ -22,7 +22,10 @@ class AgentCoreRole(Construct):
         self.role.add_to_policy(
             iam.PolicyStatement(
                 actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
-                resources=["*"],
+                resources=[
+                    f"arn:aws:bedrock:{stack.region}::foundation-model/*",
+                    f"arn:aws:bedrock:{stack.region}:{stack.account}:inference-profile/*",
+                ],
             )
         )
         self.role.add_to_policy(
