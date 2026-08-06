@@ -25,6 +25,21 @@ Every demo runs on its own [Amazon Bedrock AgentCore Runtime](https://docs.aws.a
 | [11 · Chaos Testing](./agents/11-chaos-resilience/) | Safety & Control | Press play: the same question runs twice under injected chaos. Without the harness the agent reports garbage (999 °C); with it, a hook catches the impossible value and retries | `AfterToolCallEvent`, `event.retry` |
 | 🤖 Robots | (placeholder) | Space reserved for a live-robot video: the same agent loop driving physical hardware | N/A |
 
+## Input guardrails
+
+Every demo applies a lightweight, deterministic input filter before the prompt reaches the model. The filter runs in the AgentCore runtime entrypoint — no extra model call, no added latency — and covers:
+
+| Rule | Demos |
+|------|-------|
+| **Off-topic / out-of-scope** — rejects requests to write code, essays, translations, "act as X", etc. | All except 03 and 10 |
+| **Jailbreak / instruction-override** — blocks "ignore your instructions", "you are DAN", role-override attempts | All except 03 and 10 |
+| **System-prompt extraction** — blocks "repeat your instructions", "show me your rules", etc. | All except 03 and 10 |
+| **Input length cap** (2,000 chars) and **per-session rate limit** (20 req/min) | All 11 demos |
+
+Demos **03 · Hooks: the Guardian** and **10 · Memory Poisoning** are attack demos: their scope/jailbreak/extraction rules are intentionally off so visitors can send adversarial prompts and watch the *actual* defense mechanisms (hooks and tool-boundary gates) do the blocking.
+
+When a prompt is blocked, a refusal message streams to the **chat** (trilingual EN/ES/PT) and a `guardrail_blocked` card appears in the Insights panel. The model is never called. Implementation: [`agents/common/guardrails.py`](./agents/common/guardrails.py).
+
 ## Architecture
 
 ![Architecture diagram](./assets/architecture.png)
