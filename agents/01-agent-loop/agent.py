@@ -73,7 +73,13 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    agent = _get_agent(session_id, model_id)
+    try:
+        agent = _get_agent(session_id, model_id)
+    except Exception:
+        logger.exception("Agent init failed (model_id=%s)", model_id)
+        yield json.dumps(ev.error("The agent hit an error. Please try again."))
+        yield json.dumps(ev.done())
+        return
     try:
         async for event in stream_agent_events(agent, prompt):
             yield json.dumps(event)
