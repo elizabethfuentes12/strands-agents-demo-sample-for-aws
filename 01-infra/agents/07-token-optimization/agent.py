@@ -10,7 +10,7 @@ import os
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
-from strands.models import BedrockModel
+from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
 
 import demo_events as ev
 import guardrails
@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo07")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 BASE_PROMPT = (
     "You are an SRE assistant. Answer briefly (2-3 sentences) in the user's language."
@@ -46,9 +45,7 @@ async def invoke(payload, context=None):
     prompt = payload.get("prompt", "") or (
         "Analyze the last 3 hours of logs: which service has the most errors?"
     )
-    model_id = payload.get("model", MODEL_ID)
-    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
-        model_id = MODEL_ID
+    model_id = resolve_model_id(payload.get("model"))
     session_id = getattr(context, "session_id", None) or "local"
 
     verdict = guardrails.check(prompt, POLICY, session_id=session_id)
@@ -57,7 +54,7 @@ async def invoke(payload, context=None):
             yield json.dumps(event)
         return
 
-    model = BedrockModel(model_id=model_id)
+    model = make_bedrock_model(model_id)
     try:
         # Round 1: naive agent — raw logs flood the context.
         yield json.dumps({"type": "phase", "phase": "naive"})

@@ -11,7 +11,7 @@ import os
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from pydantic import BaseModel, Field
 from strands import Agent
-from strands.models import BedrockModel
+from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
 
 import demo_events as ev
 import guardrails
@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo02")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 
 class EventLead(BaseModel):
@@ -57,7 +56,7 @@ def _get_agent(session_id: str, model_id: str) -> Agent:
     global _agent, _current_session, _current_model
     if _agent is None or _current_session != session_id or _current_model != model_id:
         _agent = Agent(
-            model=BedrockModel(model_id=model_id),
+            model=make_bedrock_model(model_id),
             system_prompt=SYSTEM_PROMPT,
             callback_handler=None,
         )
@@ -70,9 +69,7 @@ def _get_agent(session_id: str, model_id: str) -> Agent:
 async def invoke(payload, context=None):
     payload = payload or {}
     prompt = payload.get("prompt", "")
-    model_id = payload.get("model", MODEL_ID)
-    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
-        model_id = MODEL_ID
+    model_id = resolve_model_id(payload.get("model"))
     session_id = getattr(context, "session_id", None) or "local"
     if not prompt:
         yield json.dumps(ev.error("Empty prompt"))

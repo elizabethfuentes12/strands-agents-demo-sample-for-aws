@@ -20,7 +20,7 @@ import os
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
-from strands.models import BedrockModel
+from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
 
 import demo_events as ev
 import guardrails
@@ -32,7 +32,6 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo11")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are a travel assistant in a demo. You have real tools: \
 geocode_place (place -> coordinates), climate_summary (coordinates -> historical \
@@ -61,7 +60,7 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list, model_i
 
     yield json.dumps({"type": "phase", "phase": phase})
     agent = Agent(
-        model=BedrockModel(model_id=model_id),
+        model=make_bedrock_model(model_id),
         system_prompt=SYSTEM_PROMPT,
         tools=TOOLS,
         hooks=hooks,
@@ -75,9 +74,7 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list, model_i
 async def invoke(payload, context=None):
     payload = payload or {}
     prompt = payload.get("prompt", "") or DEFAULT_PROMPT
-    model_id = payload.get("model", MODEL_ID)
-    if model_id not in (MODEL_ID, CLAUDE_MODEL_ID):
-        model_id = MODEL_ID
+    model_id = resolve_model_id(payload.get("model"))
     session_id = getattr(context, "session_id", None) or "local"
 
     verdict = guardrails.check(prompt, POLICY, session_id=session_id)
