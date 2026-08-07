@@ -10,6 +10,7 @@ Event types:
 - tool_call_start:  {type, tool, input}
 - tool_result:      {type, tool, output, duration_ms}
 - hook_blocked:     {type, tool, reason, hook}
+- agent_state:      {type, cycle, state}  # "thinking"|"calling_tools"|"responding"
 - guardrail_blocked:{type, kind, reason}
 - handoff:          {type, from_agent, to_agent}
 - metrics:          {type, cycles, input_tokens, output_tokens, total_tokens,

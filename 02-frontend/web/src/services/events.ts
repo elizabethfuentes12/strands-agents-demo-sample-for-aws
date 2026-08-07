@@ -29,6 +29,8 @@ export interface AgentEvent {
     | 'memory_state'
     | 'chaos_injected'
     | 'recovered'
+    | 'agent_state'
+    | 'guardrail_blocked'
   seq?: number
   [key: string]: unknown
 }

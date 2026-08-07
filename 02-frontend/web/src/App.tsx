@@ -81,9 +81,19 @@ function Login({
   )
 }
 
-function CycleCard({ event, t }: { event: AgentEvent; t: Strings }) {
+const STATE_LABEL: Record<string, { en: string; es: string; pt: string }> = {
+  thinking:     { en: 'Thinking…',      es: 'Pensando…',     pt: 'Pensando…' },
+  calling_tools:{ en: 'Calling tools',  es: 'Llamando tools', pt: 'Chamando tools' },
+  responding:   { en: 'Responding',     es: 'Respondiendo',  pt: 'Respondendo' },
+}
+
+function CycleCard({ event, t, lang }: { event: AgentEvent; t: Strings; lang: string }) {
   const [open, setOpen] = useState(false)
   const reasoning = typeof event.reasoning === 'string' ? event.reasoning.trim() : ''
+  const agentState = typeof event.agentState === 'string' ? event.agentState : ''
+  const stateLabel = agentState
+    ? (STATE_LABEL[agentState]?.[lang as 'en'|'es'|'pt'] ?? agentState)
+    : null
   return (
     <div
       className={`card cycle ${reasoning ? 'expandable' : ''}`}
@@ -95,17 +105,17 @@ function CycleCard({ event, t }: { event: AgentEvent; t: Strings }) {
       </div>
       {reasoning
         ? <>{t.reasoning(String(event.cycle))}<span className="hint"> — {open ? '' : t.clickToSee}</span></>
-        : <span className="muted">{t.cycleResponding}</span>
+        : <span className="muted">{stateLabel ?? t.cycleResponding}</span>
       }
       {open && reasoning && <div className="reasoning">{reasoning}</div>}
     </div>
   )
 }
 
-function InsightCard({ event, t }: { event: AgentEvent; t: Strings }) {
+function InsightCard({ event, t, lang }: { event: AgentEvent; t: Strings; lang: string }) {
   switch (event.type) {
     case 'cycle_start':
-      return <CycleCard event={event} t={t} />
+      return <CycleCard event={event} t={t} lang={lang} />
     case 'tool_call_start':
       return (
         <div className="card tool">
@@ -420,6 +430,18 @@ export default function App() {
         }
         return out
       })
+    } else if (e.type === 'agent_state') {
+      // Update the agent state on the matching cycle card.
+      setInsights((prev) => {
+        const out = [...prev]
+        for (let i = out.length - 1; i >= 0; i--) {
+          if (out[i].type === 'cycle_start' && out[i].cycle === e.cycle) {
+            out[i] = { ...out[i], agentState: String(e.state) }
+            return out
+          }
+        }
+        return out
+      })
     } else if (e.type === 'interrupt') {
       setPendingInterrupt({ id: String(e.id), reason: e.reason })
       setInsights((prev) => [...prev, e])
@@ -657,7 +679,7 @@ export default function App() {
               </div>
             )}
             {insights.map((e, i) => (
-              <InsightCard key={i} event={e} t={t} />
+              <InsightCard key={i} event={e} t={t} lang={lang} />
             ))}
           </div>
           {metrics && (

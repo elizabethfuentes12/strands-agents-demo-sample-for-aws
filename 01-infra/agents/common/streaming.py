@@ -113,6 +113,15 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
         for kind, chunk in splitter.feed(text):
             yield _emit(kind, chunk)
 
+    _last_state = None
+
+    def _state_event(state: str):
+        nonlocal _last_state
+        if state != _last_state:
+            _last_state = state
+            return {"type": "agent_state", "cycle": cycle, "state": state}
+        return None
+
     async for event in agent.stream_async(prompt, **stream_kwargs):
         if drain:
             for extra in drain():
@@ -123,12 +132,19 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                 yield _emit(kind, chunk)
             reasoning_splitter.restart(in_thinking=_nova_reasoning)
             cycle += 1
+            _last_state = None
             yield ev.cycle_start(cycle)
+            s = _state_event("thinking")
+            if s: yield s
         elif event.get("reasoning") and event.get("reasoningText"):
             # Native reasoning events (models with explicit reasoning support).
+            s = _state_event("thinking")
+            if s: yield s
             for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
                 yield _emit(kind, chunk)
         elif "data" in event:
+            s = _state_event("responding")
+            if s: yield s
             for out in _split(event["data"]):
                 yield out
         elif "current_tool_use" in event and event["current_tool_use"].get("name"):
@@ -137,6 +153,8 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
             if tool_id and tool_id not in tool_started_at:
                 tool_started_at[tool_id] = time.time()
                 tool_names[tool_id] = tool_use["name"]
+                s = _state_event("calling_tools")
+                if s: yield s
                 yield ev.tool_call_start(tool_use["name"], tool_use.get("input"))
         elif "message" in event:
             message = event["message"]
