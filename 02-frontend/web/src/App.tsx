@@ -103,10 +103,16 @@ function CycleCard({ event, t, lang }: { event: AgentEvent; t: Strings; lang: st
         {t.cycleLabel}
         {reasoning && <span className="chevron">{open ? '▾' : '▸'}</span>}
       </div>
-      {reasoning
-        ? <>{t.reasoning(String(event.cycle))}<span className="hint"> — {open ? '' : t.clickToSee}</span></>
-        : <span className="muted">{stateLabel ?? t.cycleResponding}</span>
-      }
+      {/* Always show current state if available */}
+      {stateLabel && <span className="muted">{stateLabel}</span>}
+      {/* Show reasoning toggle when available */}
+      {reasoning && (
+        <div style={{marginTop: stateLabel ? '4px' : undefined}}>
+          {t.reasoning(String(event.cycle))}
+          <span className="hint"> — {open ? '' : t.clickToSee}</span>
+        </div>
+      )}
+      {!stateLabel && !reasoning && <span className="muted">{t.cycleResponding}</span>}
       {open && reasoning && <div className="reasoning">{reasoning}</div>}
     </div>
   )
@@ -116,14 +122,30 @@ function InsightCard({ event, t, lang }: { event: AgentEvent; t: Strings; lang: 
   switch (event.type) {
     case 'cycle_start':
       return <CycleCard event={event} t={t} lang={lang} />
-    case 'tool_call_start':
+    case 'tool_call_start': {
+      // Parse and format tool input as readable key: value pairs
+      let inputDisplay = ''
+      try {
+        const raw = event.input
+        const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw
+        if (parsed && typeof parsed === 'object') {
+          inputDisplay = Object.entries(parsed as Record<string, unknown>)
+            .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
+            .join('\n')
+        } else {
+          inputDisplay = String(raw ?? '')
+        }
+      } catch {
+        inputDisplay = String(event.input ?? '')
+      }
       return (
         <div className="card tool">
           <div className="label">{t.toolCall}</div>
           <strong>{String(event.tool)}</strong>
-          <div className="mono">{String(event.input ?? '')}</div>
+          {inputDisplay && <div className="mono">{inputDisplay}</div>}
         </div>
       )
+    }
     case 'tool_result':
       return (
         <div className="card result">
