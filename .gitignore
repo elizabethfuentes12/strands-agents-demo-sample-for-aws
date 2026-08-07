@@ -13,12 +13,18 @@ cdk.context.json
 # Agent build artifacts
 agents/*/deployment_package/
 agents/*/deployment_package.zip
+01-infra/agents/*/deployment_package/
+01-infra/agents/*/deployment_package.zip
 
 # Web
 web/node_modules/
 web/dist/
 web/.env.local
 web/.env*.local
+02-frontend/web/node_modules/
+02-frontend/web/dist/
+02-frontend/web/.env.local
+02-frontend/web/.env*.local
 
 # Internal docs (not published)
 docs/
