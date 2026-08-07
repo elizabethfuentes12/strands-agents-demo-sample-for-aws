@@ -26,3 +26,7 @@ docs/
 # OS / editor
 .DS_Store
 .claude/
+
+# CDK synthesized output - never commit
+01-infra/cdk.out/
+02-frontend/cdk.out/

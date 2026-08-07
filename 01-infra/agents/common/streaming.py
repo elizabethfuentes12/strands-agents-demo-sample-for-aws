@@ -91,10 +91,18 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     splitter = _ThinkingSplitter()
     # Nova streams its answer through the native reasoning channel, opening with
     # implicit thinking (no <thinking> tag) and closing with </thinking>; the
-    # text AFTER that close tag is the user-facing answer. Split it so reasoning
-    # goes to the panel and the answer reaches the chat as tokens.
+    # text AFTER that close tag is the user-facing answer.
+    # Claude (and other models) use explicit reasoningText events — their data
+    # channel carries plain user-facing text, not thinking blocks.
+    # Only pre-arm the splitter for Nova-style implicit thinking.
+    _model_id = ""
+    try:
+        _model_id = agent.model.config.get("model_id", "") if hasattr(agent, "model") else ""
+    except Exception:
+        pass
+    _nova_reasoning = "nova" in _model_id.lower()
     reasoning_splitter = _ThinkingSplitter()
-    reasoning_splitter.in_thinking = True
+    reasoning_splitter.in_thinking = _nova_reasoning
 
     def _emit(kind, chunk):
         if kind == "token":
@@ -113,7 +121,7 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
             # Close out the previous cycle's reasoning before starting a new one.
             for kind, chunk in reasoning_splitter.flush():
                 yield _emit(kind, chunk)
-            reasoning_splitter.restart(in_thinking=True)
+            reasoning_splitter.restart(in_thinking=_nova_reasoning)
             cycle += 1
             yield ev.cycle_start(cycle)
         elif event.get("reasoning") and event.get("reasoningText"):

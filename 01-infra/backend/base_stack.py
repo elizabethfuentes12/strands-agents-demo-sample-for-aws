@@ -53,7 +53,7 @@ class BaseStack(Stack):
             runtime=_lambda.Runtime.PYTHON_3_12,
             handler="lambda_function.lambda_handler",
             code=_lambda.Code.from_asset("lambdas/dispatcher"),
-            timeout=Duration.minutes(5),
+            timeout=Duration.minutes(15),
             memory_size=512,
             log_retention=logs.RetentionDays.ONE_WEEK,
         )

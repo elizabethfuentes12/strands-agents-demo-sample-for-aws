@@ -23,9 +23,22 @@ class AgentCoreRole(Construct):
             iam.PolicyStatement(
                 actions=["bedrock:InvokeModel", "bedrock:InvokeModelWithResponseStream"],
                 resources=[
-                    f"arn:aws:bedrock:{stack.region}::foundation-model/*",
-                    f"arn:aws:bedrock:{stack.region}:{stack.account}:inference-profile/*",
+                    # Cross-region inference profiles route to multiple regions —
+                    # us.* routes to us-east-1, us-east-2, us-west-2.
+                    "arn:aws:bedrock:*::foundation-model/*",
+                    f"arn:aws:bedrock:*:{stack.account}:inference-profile/*",
+                    "arn:aws:bedrock:*::inference-profile/*",
                 ],
+            )
+        )
+        self.role.add_to_policy(
+            iam.PolicyStatement(
+                actions=[
+                    "aws-marketplace:Subscribe",
+                    "aws-marketplace:Unsubscribe",
+                    "aws-marketplace:ViewSubscriptions",
+                ],
+                resources=["*"],
             )
         )
         self.role.add_to_policy(

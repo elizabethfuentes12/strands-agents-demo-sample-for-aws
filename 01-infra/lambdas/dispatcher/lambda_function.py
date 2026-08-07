@@ -33,8 +33,11 @@ _agentcore = _session.client(
     config=Config(read_timeout=900, retries={"max_attempts": 0}),
 )
 _ssm = _session.client("ssm", region_name=REGION)
-_runtime_arn_cache: dict = {}
+# API key is stable for the life of the stack — safe to cache per container.
 _api_key_cache: dict = {}
+# Runtime ARNs change on every cdk deploy — never cache; always read fresh
+# so warm Lambda containers pick up the new ARN without a cold start.
+_runtime_arn_cache: dict = {}
 
 
 def _events_api_key() -> str:
@@ -45,10 +48,9 @@ def _events_api_key() -> str:
 
 
 def _runtime_arn(demo: str) -> str:
-    if demo not in _runtime_arn_cache:
-        param = _ssm.get_parameter(Name=f"{SSM_PREFIX}/{demo}/runtime_arn")
-        _runtime_arn_cache[demo] = param["Parameter"]["Value"]
-    return _runtime_arn_cache[demo]
+    # Always read from SSM — no cache — so a redeploy is reflected immediately.
+    param = _ssm.get_parameter(Name=f"{SSM_PREFIX}/{demo}/runtime_arn")
+    return param["Parameter"]["Value"]
 
 
 def _safe_url(url: str) -> str:
