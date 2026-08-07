@@ -37,6 +37,7 @@ def make_bedrock_model(model_id: str) -> BedrockModel:
         return BedrockModel(
             model_id=model_id,
             additional_request_fields={
+                "anthropic_beta": ["interleaved-thinking-2025-05-14"],
                 "thinking": {"type": "enabled", "budget_tokens": 2000},
             },
         )
