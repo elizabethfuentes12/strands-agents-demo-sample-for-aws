@@ -14,7 +14,7 @@ REGION = os.environ.get("AWS_REGION", "us-east-1")
 DEFAULT_MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
 
 # Claude Haiku 4.5 — global inference profile, no account activation needed.
-CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
+CLAUDE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
 
 # Allowlist of model identifiers the browser may request.
 ALLOWED_MODEL_IDS = {DEFAULT_MODEL_ID, CLAUDE_MODEL_ID}
