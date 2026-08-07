@@ -32,7 +32,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo11")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are a travel assistant in a demo. You have real tools: \
 geocode_place (place -> coordinates), climate_summary (coordinates -> historical \

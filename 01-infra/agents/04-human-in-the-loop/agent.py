@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo04")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 SYSTEM_PROMPT = """You are a travel booking assistant in a demo. Search flights \
 when asked, pick the best (cheapest) option, and book it with book_flight — do \

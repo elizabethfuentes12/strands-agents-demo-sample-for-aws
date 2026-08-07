@@ -21,7 +21,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo09")
 
 MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
-CLAUDE_MODEL_ID = "us.anthropic.claude-haiku-4-5-20251001-v1:0"
+CLAUDE_MODEL_ID = "global.anthropic.claude-haiku-4-5-20251001-v1:0"
 
 ORCHESTRATOR_PROMPT = """You are the front-desk concierge of an AWS demo booth. \
 Delegate every question to the right specialist tool: aws_expert for AWS/cloud \

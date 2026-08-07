@@ -96,7 +96,7 @@ Before you deploy, make sure you have all of the following. `deploy.sh` uses eve
 **AWS account setup**
 
 - **Credentials configured** for the target account, for example via `aws configure`, `AWS_PROFILE`, or SSO. Confirm with `aws sts get-caller-identity`.
-- **Amazon Bedrock model access** to Amazon Nova Pro (`us.amazon.nova-pro-v1:0`) in your Region. Request access in the Bedrock console under Model access. To use a different model, set `MODEL_ID` to any model your account can invoke.
+- **Amazon Bedrock model access** — Nova Pro works immediately with no setup. For Claude Haiku (the second model option in the UI), Anthropic requires a one-time first invocation from a user with AWS Marketplace permissions before the model is available account-wide. Open the [Bedrock Model Catalog](https://us-east-1.console.aws.amazon.com/bedrock/home#/models), select **Anthropic → Claude Haiku 4.5**, choose the **Global** inference profile, and send a test message in the playground. This enables Claude for all users in the account. The CDK role already has `aws-marketplace:Subscribe` for automatic re-enablement on future invocations. To use a different default model, set `MODEL_ID` at deploy time.
 - **Region.** The stacks default to `us-east-1`. Override with `AWS_REGION` (used by `deploy.sh`).
 - **CDK bootstrap.** The environment must be bootstrapped for CDK v2. `deploy.sh` checks for the `CDKToolkit` stack and runs `cdk bootstrap` automatically if it is missing.
 - **IAM permissions** to create the resources these stacks use: Amazon Bedrock AgentCore, AWS AppSync, AWS Lambda, Amazon Cognito, Amazon S3, Amazon CloudFront, AWS IAM, AWS CloudFormation, and AWS Systems Manager Parameter Store.
