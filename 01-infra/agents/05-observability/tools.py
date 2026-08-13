@@ -3,7 +3,7 @@ import random
 
 from strands import tool
 
-_rng = random.Random()
+_rng = random.Random()  # nosec B311 — demo simulation data, not crypto
 
 # In-memory ledger: the "ground truth" the UI can compare against what the
 # agent claims (pattern from observability-for-agents-sample-for-aws).

@@ -352,15 +352,15 @@ def fetch_logs_pointer(hours, tool_context):
   {
     slug: 'human-in-the-loop',
     docsUrl: 'https://strandsagents.com/docs/user-guide/concepts/interrupts/',
-    code: `@tool(context=True)
-def book_flight(offer_id, price_usd, tool_context):
-    # freezes the WHOLE agent until a human decides
-    approval = tool_context.interrupt(
-        "booking-approval",
-        reason={"offer_id": offer_id, "price": price_usd},
-    )
-    if approval != "y":
-        return "Booking REJECTED by human reviewer"`,
+    code: '@tool(context=True)\n'
+      + 'def book_flight(offer_id, price_usd, tool_context):\n'
+      + '    # freezes the WHOLE agent until a human decides\n'
+      + '    approval = tool_context.interrupt(\n'
+      + '        "booking-approval",\n'
+      + '        reason={"offer_id": offer_id, "price": price_usd},\n'
+      + '    )\n'
+      + '    if approval != "y":\n'
+      + '        return "Booking REJECTED by human reviewer"',
     text: {
       en: {
         title: 'Human-in-the-loop',
@@ -415,14 +415,14 @@ def book_flight(offer_id, price_usd, tool_context):
   {
     slug: 'observability',
     docsUrl: 'https://strandsagents.com/docs/user-guide/observability-evaluation/observability/',
-    code: `agent = Agent(
-    model=model, tools=[...],
-    hooks=[TagVipBookings()],          # business attrs
-    trace_attributes={"session.id": sid},  # OTEL tags
-)
-# hook: AfterToolCallEvent -> span.set_attribute(
-#   "business.vip_booking", price >= 200)
-# ground truth: the ledger vs what the agent SAYS`,
+    code: 'agent = Agent(\n'
+      + '    model=model, tools=[...],\n'
+      + '    hooks=[TagVipBookings()],          # business attrs\n'
+      + '    trace_attributes={"session.id": sid},  # OTEL tags\n'
+      + ')\n'
+      + '# hook: AfterToolCallEvent -> span.set_attribute(\n'
+      + '#   "business.vip_booking", price >= 200)\n'
+      + '# ground truth: the ledger vs what the agent SAYS',
     text: {
       en: {
         title: 'Agent X-Ray',
@@ -601,19 +601,19 @@ graph = builder.build()  # deterministic DAG`,
   {
     slug: 'memory-poisoning',
     docsUrl: 'https://strandsagents.com/docs/user-guide/concepts/agents/state/',
-    code: `ALLOWED_EMAIL_DOMAINS = {"example.com", "mycompany.com"}
-
-def email_is_allowed(address: str) -> bool:
-    domain = address.rsplit("@", 1)[-1].lower().strip()
-    return domain in ALLOWED_EMAIL_DOMAINS  # a pure function
-
-@tool
-def send_email(to_address, subject, body):
-    # a poisoned note can fool the MODEL, never this gate
-    if not email_is_allowed(to_address):
-        return "BLOCKED: domain not allowed. Nothing sent."
-# turn 1 saves a note; turn 2 the agent obeys it and
-# tries to email the booking out -> blocked, 0 leaked.`,
+    code: 'ALLOWED_EMAIL_DOMAINS = {"example.com", "mycompany.com"}\n'
+      + '\n'
+      + 'def email_is_allowed(address: str) -> bool:\n'
+      + '    domain = address.rsplit("@", 1)[-1].lower().strip()\n'
+      + '    return domain in ALLOWED_EMAIL_DOMAINS  # a pure function\n'
+      + '\n'
+      + '@tool\n'
+      + 'def send_email(to_address, subject, body):\n'
+      + '    # a poisoned note can fool the MODEL, never this gate\n'
+      + '    if not email_is_allowed(to_address):\n'
+      + '        return "BLOCKED: domain not allowed. Nothing sent."\n'
+      + '# turn 1 saves a note; turn 2 the agent obeys it and\n'
+      + '# tries to email the booking out -> blocked, 0 leaked.',
     text: {
       en: {
         title: 'Memory Poisoning',

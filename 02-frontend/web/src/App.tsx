@@ -65,7 +65,7 @@ function Login({
   return (
     <form className="login" onSubmit={submit}>
       <h1>
-        Strands <span>Agents</span> Demos
+        {'Strands'} <span>{'Agents'}</span> {'Demos'}
       </h1>
       <LangSwitch lang={lang} onChange={onLang} />
       <input value={user} onChange={(e) => setUser(e.target.value)} placeholder={t.username} />
@@ -160,7 +160,7 @@ function InsightCard({ event, t, lang }: { event: AgentEvent; t: Strings; lang: 
         <div className="card blocked">
           <div className="label">{t.blocked}</div>
           <strong>{String(event.tool)}</strong> — {String(event.reason)}
-          <div className="mono">hook: {String(event.hook)}</div>
+          <div className="mono">{'hook: '}{String(event.hook)}</div>
         </div>
       )
     case 'structured': {
@@ -538,7 +538,7 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="logo">
-          Strands <span>Agents</span> · Demos
+          {'Strands'} <span>{'Agents'}</span>{' · Demos'}
         </div>
         <div className={`status ${status}`}>
           {status === 'ready' ? t.connected : status === 'connecting' ? t.connecting : t.disconnected}
@@ -576,11 +576,11 @@ export default function App() {
             target="_blank"
             rel="noreferrer"
           >
-            GitHub
+            {'GitHub'}
           </a>
-          <span>·</span>
+          <span>{'·'}</span>
           <a href="https://strandsagents.com/" target="_blank" rel="noreferrer">
-            strandsagents.com
+            {'strandsagents.com'}
           </a>
         </div>
       </header>

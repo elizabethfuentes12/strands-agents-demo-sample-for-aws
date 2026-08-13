@@ -98,19 +98,14 @@ async def invoke(payload, context=None):
     try:
         result_holder = {}
 
-        async def stream():
-            async for event in agent.stream_async(prompt):
-                if "result" in event:
-                    result_holder["result"] = event["result"]
-                yield event
-
-        # Reuse the shared translator by wrapping the raw stream.
         import time
 
         cycle = 0
         tool_started_at = {}
         tool_names = {}
-        async for event in stream():
+        async for event in agent.stream_async(prompt):
+            if "result" in event:
+                result_holder["result"] = event["result"]
             if event.get("start_event_loop"):
                 cycle += 1
                 yield json.dumps(ev.cycle_start(cycle))

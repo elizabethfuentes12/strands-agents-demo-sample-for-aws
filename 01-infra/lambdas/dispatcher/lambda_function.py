@@ -77,7 +77,7 @@ def _publish(channel: str, events: list) -> None:
             },
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             resp.read()
 
 

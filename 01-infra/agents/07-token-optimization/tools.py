@@ -7,7 +7,7 @@ import random
 
 from strands import tool
 
-_seeded = random.Random(42)  # deterministic dataset so both agents see the same logs
+_seeded = random.Random(42)  # nosec B311 — deterministic demo dataset, not crypto
 
 
 def _generate_logs(hours: int = 3) -> list:

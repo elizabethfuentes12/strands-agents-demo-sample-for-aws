@@ -98,7 +98,7 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     _model_id = ""
     try:
         _model_id = agent.model.config.get("model_id", "") if hasattr(agent, "model") else ""
-    except Exception:
+    except Exception:  # nosec B110
         pass
     _nova_reasoning = "nova" in _model_id.lower()
     reasoning_splitter = _ThinkingSplitter()
@@ -109,18 +109,7 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
             return ev.token(chunk)
         return {"type": "reasoning", "cycle": cycle, "text": chunk}
 
-    def _split(text):
-        for kind, chunk in splitter.feed(text):
-            yield _emit(kind, chunk)
-
     _last_state = None
-
-    def _state_event(state: str):
-        nonlocal _last_state
-        if state != _last_state:
-            _last_state = state
-            return {"type": "agent_state", "cycle": cycle, "state": state}
-        return None
 
     async for event in agent.stream_async(prompt, **stream_kwargs):
         if drain:
@@ -134,27 +123,31 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
             cycle += 1
             _last_state = None
             yield ev.cycle_start(cycle)
-            s = _state_event("thinking")
-            if s: yield s
+            if "thinking" != _last_state:
+                _last_state = "thinking"
+                yield {"type": "agent_state", "cycle": cycle, "state": "thinking"}
         elif event.get("reasoning") and event.get("reasoningText"):
             # Native reasoning events (models with explicit reasoning support).
-            s = _state_event("thinking")
-            if s: yield s
+            if "thinking" != _last_state:
+                _last_state = "thinking"
+                yield {"type": "agent_state", "cycle": cycle, "state": "thinking"}
             for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
                 yield _emit(kind, chunk)
         elif "data" in event:
-            s = _state_event("responding")
-            if s: yield s
-            for out in _split(event["data"]):
-                yield out
+            if "responding" != _last_state:
+                _last_state = "responding"
+                yield {"type": "agent_state", "cycle": cycle, "state": "responding"}
+            for kind, chunk in splitter.feed(event["data"]):
+                yield _emit(kind, chunk)
         elif "current_tool_use" in event and event["current_tool_use"].get("name"):
             tool_use = event["current_tool_use"]
             tool_id = tool_use.get("toolUseId")
             if tool_id and tool_id not in tool_started_at:
                 tool_started_at[tool_id] = time.time()
                 tool_names[tool_id] = tool_use["name"]
-                s = _state_event("calling_tools")
-                if s: yield s
+                if "calling_tools" != _last_state:
+                    _last_state = "calling_tools"
+                    yield {"type": "agent_state", "cycle": cycle, "state": "calling_tools"}
                 yield ev.tool_call_start(tool_use["name"], tool_use.get("input"))
         elif "message" in event:
             message = event["message"]

@@ -51,13 +51,6 @@ TOOLS = [geocode_place, climate_summary, wikipedia_summary]
 
 async def _run_round(phase: str, prompt: str, hooks: list, drains: list, model_id: str):
     """Stream one round, interleaving chaos/resilience events via drains."""
-
-    def drain_all():
-        out = []
-        for d in drains:
-            out.extend(d())
-        return out
-
     yield json.dumps({"type": "phase", "phase": phase})
     agent = Agent(
         model=make_bedrock_model(model_id),
@@ -66,7 +59,9 @@ async def _run_round(phase: str, prompt: str, hooks: list, drains: list, model_i
         hooks=hooks,
         callback_handler=None,
     )
-    async for event in stream_agent_events(agent, prompt, drain=drain_all):
+    async for event in stream_agent_events(
+        agent, prompt, drain=lambda: [item for d in drains for item in d()]
+    ):
         yield json.dumps(event)
 
 

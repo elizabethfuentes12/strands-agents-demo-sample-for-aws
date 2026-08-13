@@ -3,7 +3,7 @@ import random
 
 from strands import tool
 
-_rng = random.Random()
+_rng = random.Random()  # nosec B311 — demo simulation data, not crypto
 
 
 @tool

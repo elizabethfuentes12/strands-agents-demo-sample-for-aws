@@ -3,7 +3,7 @@
 Local bundling runs `npm run build` at synth time (requires web/.env.local with
 the base-stack outputs). SPA routes 403/404 fall back to index.html.
 """
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 from aws_cdk import (
@@ -39,8 +39,8 @@ class WebStack(Stack):
                 )
 
         # Build the SPA at synth time so dist/ reflects the current .env.local.
-        subprocess.run(["npm", "install", "--silent"], cwd=WEB_DIR, check=True)
-        subprocess.run(["npm", "run", "build"], cwd=WEB_DIR, check=True)
+        subprocess.run(["npm", "install", "--silent"], cwd=WEB_DIR, check=True)  # nosec B603 B607
+        subprocess.run(["npm", "run", "build"], cwd=WEB_DIR, check=True)  # nosec B603 B607
 
         bucket = s3.Bucket(
             self,

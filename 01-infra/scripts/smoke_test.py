@@ -101,7 +101,7 @@ async def main():
             headers={"content-type": "application/json", "authorization": token},
             method="POST",
         )
-        with urllib.request.urlopen(req, timeout=10) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
             print("publish:", resp.status)
 
         # Collect agent events until `done` AND every earlier seq arrived

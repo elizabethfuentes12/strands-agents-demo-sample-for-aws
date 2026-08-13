@@ -4,7 +4,7 @@ Builds the deployment package at synth time if missing (uv, ARM64 wheels),
 uploads it as an S3 asset, and creates the CfnRuntime + CfnRuntimeEndpoint.
 Pattern from whatsapp-ai-agent-sample-for-aws-agentcore.
 """
-import subprocess
+import subprocess  # nosec B404
 from pathlib import Path
 
 from aws_cdk import (
@@ -34,7 +34,7 @@ class AgentCoreRuntime(Construct):
         agent_path = REPO_ROOT / "agents" / agent_dir
         package_zip = agent_path / "deployment_package.zip"
         if not package_zip.exists():
-            subprocess.run(
+            subprocess.run(  # nosec B603
                 [str(REPO_ROOT / "scripts" / "create_deployment_package.sh"), str(agent_path)],
                 check=True,
             )
