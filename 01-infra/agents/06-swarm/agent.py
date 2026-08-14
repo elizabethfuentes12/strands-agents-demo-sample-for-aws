@@ -10,11 +10,12 @@ import os
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
-from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
+from models import make_bedrock_model, resolve_model_id
 from strands.multiagent import Swarm
 
 import demo_events as ev
 import guardrails
+from streaming import _ThinkingSplitter
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("demo06")
@@ -100,18 +101,24 @@ async def invoke(payload, context=None):
 
     swarm = _build_swarm(model_id)
     current_node = None
+    _nova_reasoning = "nova" in model_id.lower()
+    writer_splitter = _ThinkingSplitter()
+    writer_splitter.in_thinking = _nova_reasoning
     try:
         async for event in swarm.stream_async(prompt):
             etype = event.get("type")
             if etype == "multiagent_node_start":
                 current_node = event.get("node_id", "?")
+                writer_splitter.restart(in_thinking=_nova_reasoning)
                 yield json.dumps({"type": "node_start", "node": current_node})
             elif etype == "multiagent_node_stream":
                 inner = event.get("event", {})
                 # Only stream the writer's text to the chat; other nodes work
                 # behind the scenes (their activity shows in the graph).
                 if "data" in inner and current_node == "writer":
-                    yield json.dumps(ev.token(inner["data"]))
+                    for kind, chunk in writer_splitter.feed(inner["data"]):
+                        if kind == "token":
+                            yield json.dumps(ev.token(chunk))
             elif etype == "multiagent_handoff":
                 for src in event.get("from_node_ids", []):
                     for dst in event.get("to_node_ids", []):

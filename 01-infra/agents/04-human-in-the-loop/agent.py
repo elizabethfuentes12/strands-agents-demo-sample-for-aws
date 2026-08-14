@@ -8,14 +8,15 @@ agent resumes exactly where it stopped.
 import json
 import logging
 import os
+import time
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
-from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
+from models import make_bedrock_model, resolve_model_id
 
 import demo_events as ev
 import guardrails
-from streaming import stream_agent_events
+from streaming import _ThinkingSplitter
 from tools import book_flight, search_flights
 
 logging.basicConfig(level=logging.INFO)
@@ -97,20 +98,41 @@ async def invoke(payload, context=None):
 
     try:
         result_holder = {}
-
-        import time
-
         cycle = 0
         tool_started_at = {}
         tool_names = {}
+        _nova_reasoning = "nova" in model_id.lower()
+        reasoning_splitter = _ThinkingSplitter()
+        reasoning_splitter.in_thinking = _nova_reasoning
+        splitter = _ThinkingSplitter()
+
         async for event in agent.stream_async(prompt):
             if "result" in event:
                 result_holder["result"] = event["result"]
             if event.get("start_event_loop"):
+                for kind, chunk in reasoning_splitter.flush():
+                    if kind == "reasoning":
+                        yield json.dumps({"type": "reasoning", "cycle": cycle, "text": chunk})
+                    else:
+                        yield json.dumps(ev.token(chunk))
+                reasoning_splitter.restart(in_thinking=_nova_reasoning)
                 cycle += 1
                 yield json.dumps(ev.cycle_start(cycle))
+            elif event.get("reasoning") and event.get("reasoningText"):
+                if _nova_reasoning:
+                    for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
+                        if kind == "reasoning":
+                            yield json.dumps({"type": "reasoning", "cycle": cycle, "text": chunk})
+                        else:
+                            yield json.dumps(ev.token(chunk))
+                elif event["reasoningText"]:
+                    yield json.dumps({"type": "reasoning", "cycle": cycle, "text": event["reasoningText"]})
             elif "data" in event:
-                yield json.dumps(ev.token(event["data"]))
+                for kind, chunk in splitter.feed(event["data"]):
+                    if kind == "token":
+                        yield json.dumps(ev.token(chunk))
+                    else:
+                        yield json.dumps({"type": "reasoning", "cycle": cycle, "text": chunk})
             elif "current_tool_use" in event and event["current_tool_use"].get("name"):
                 tool_use = event["current_tool_use"]
                 tool_id = tool_use.get("toolUseId")

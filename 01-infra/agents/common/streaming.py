@@ -122,12 +122,19 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                 _last_state = "thinking"
                 yield {"type": "agent_state", "cycle": cycle, "state": "thinking"}
         elif event.get("reasoning") and event.get("reasoningText"):
-            # Native reasoning events (models with explicit reasoning support).
+            # Native reasoning events from explicit-reasoning models (e.g. Claude).
+            # Nova uses implicit thinking via </thinking> tags and is handled by
+            # the pre-armed reasoning_splitter. For all other models, the SDK
+            # already separates thinking (reasoningText) from answer (data), so
+            # every reasoningText chunk is reasoning — no splitter needed.
             if "thinking" != _last_state:
                 _last_state = "thinking"
                 yield {"type": "agent_state", "cycle": cycle, "state": "thinking"}
-            for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
-                yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
+            if _nova_reasoning:
+                for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
+                    yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
+            elif event["reasoningText"]:
+                yield {"type": "reasoning", "cycle": cycle, "text": event["reasoningText"]}
         elif "data" in event:
             if "responding" != _last_state:
                 _last_state = "responding"

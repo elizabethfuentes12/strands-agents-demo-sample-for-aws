@@ -15,7 +15,7 @@ import threading
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
 from strands.hooks import AfterToolCallEvent, HookProvider, HookRegistry
-from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
+from models import make_bedrock_model, resolve_model_id
 
 import demo_events as ev
 import guardrails

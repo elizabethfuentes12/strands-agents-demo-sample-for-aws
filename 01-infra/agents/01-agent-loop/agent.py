@@ -10,7 +10,7 @@ import os
 
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
-from models import make_bedrock_model, resolve_model_id, CLAUDE_MODEL_ID
+from models import make_bedrock_model, resolve_model_id
 from strands_tools import calculator, current_time
 
 import demo_events as ev

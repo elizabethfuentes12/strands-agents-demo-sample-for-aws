@@ -154,6 +154,13 @@ def _rate_limited(session_id: str, now: float) -> bool:
         window = [t for t in _hits.get(session_id, []) if now - t < RATE_WINDOW_SECONDS]
         window.append(now)
         _hits[session_id] = window
+        # Prune sessions whose last hit is older than the rate window.
+        stale = [
+            sid for sid, ts in _hits.items()
+            if sid != session_id and ts and now - ts[-1] > RATE_WINDOW_SECONDS
+        ]
+        for sid in stale:
+            del _hits[sid]
         return len(window) > MAX_REQUESTS_PER_WINDOW
 
 

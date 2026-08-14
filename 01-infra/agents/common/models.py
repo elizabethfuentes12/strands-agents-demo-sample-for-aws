@@ -13,7 +13,7 @@ REGION = os.environ.get("AWS_REGION", "us-east-1")
 # Default model: Nova Pro via bedrock-runtime (env-overridable at deploy time).
 DEFAULT_MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
 
-# Claude Haiku 4.5 — global inference profile, no account activation needed.
+# Claude Sonnet 4.6 — global inference profile, no account activation needed.
 CLAUDE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
 
 # Allowlist of model identifiers the browser may request.
