@@ -34,7 +34,7 @@ class AgentCoreRuntime(Construct):
         agent_path = REPO_ROOT / "agents" / agent_dir
         package_zip = agent_path / "deployment_package.zip"
         if not package_zip.exists():
-            subprocess.run(  # nosec B603
+            subprocess.run(  # nosec B603  # nosemgrep: dangerous-subprocess-use-audit
                 [str(REPO_ROOT / "scripts" / "create_deployment_package.sh"), str(agent_path)],
                 check=True,
             )

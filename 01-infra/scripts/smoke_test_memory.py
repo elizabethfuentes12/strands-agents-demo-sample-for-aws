@@ -65,7 +65,7 @@ async def run_turn(ws, http_domain, token, inbox_channel, prompt):
         headers={"content-type": "application/json", "authorization": token},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
+    with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310  # nosemgrep: dynamic-urllib-use-detected
         assert resp.status == 200, resp.status
 
     events_by_seq: dict = {}

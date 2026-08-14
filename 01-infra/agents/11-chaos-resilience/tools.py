@@ -45,7 +45,7 @@ def _get_json(url: str) -> dict:
     if parsed.scheme != "https":
         raise ValueError(f"Disallowed URL scheme: {parsed.scheme!r}")
     request = urllib.request.Request(url, headers=_UA)
-    with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:  # nosec B310
+    with urllib.request.urlopen(request, timeout=_TIMEOUT) as response:  # nosec B310  # nosemgrep: dynamic-urllib-use-detected
         return json.load(response)
 
 

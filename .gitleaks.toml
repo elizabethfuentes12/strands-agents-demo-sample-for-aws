@@ -1,0 +1,3 @@
+[allowlist]
+description = "Ignore commits that pre-date gitignore entries for dist/ and .env.local"
+commits = ["9b27a13e0c9b54c930f6de0801b306e983b01b70"]

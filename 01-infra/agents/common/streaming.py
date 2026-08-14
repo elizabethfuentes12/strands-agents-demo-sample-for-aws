@@ -104,11 +104,6 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
     reasoning_splitter = _ThinkingSplitter()
     reasoning_splitter.in_thinking = _nova_reasoning
 
-    def _emit(kind, chunk):
-        if kind == "token":
-            return ev.token(chunk)
-        return {"type": "reasoning", "cycle": cycle, "text": chunk}
-
     _last_state = None
 
     async for event in agent.stream_async(prompt, **stream_kwargs):
@@ -118,7 +113,7 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
         if event.get("start_event_loop"):
             # Close out the previous cycle's reasoning before starting a new one.
             for kind, chunk in reasoning_splitter.flush():
-                yield _emit(kind, chunk)
+                yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
             reasoning_splitter.restart(in_thinking=_nova_reasoning)
             cycle += 1
             _last_state = None
@@ -132,13 +127,13 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
                 _last_state = "thinking"
                 yield {"type": "agent_state", "cycle": cycle, "state": "thinking"}
             for kind, chunk in reasoning_splitter.feed(event["reasoningText"]):
-                yield _emit(kind, chunk)
+                yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
         elif "data" in event:
             if "responding" != _last_state:
                 _last_state = "responding"
                 yield {"type": "agent_state", "cycle": cycle, "state": "responding"}
             for kind, chunk in splitter.feed(event["data"]):
-                yield _emit(kind, chunk)
+                yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
         elif "current_tool_use" in event and event["current_tool_use"].get("name"):
             tool_use = event["current_tool_use"]
             tool_id = tool_use.get("toolUseId")
@@ -173,9 +168,9 @@ async def stream_agent_events(agent, prompt, drain=None, **stream_kwargs):
             # in in_thinking=True from the last restart — that content is the
             # user-facing answer, not internal reasoning.
             for kind, chunk in reasoning_splitter.flush():
-                yield ev.token(chunk) if kind == "reasoning" else _emit(kind, chunk)
+                yield ev.token(chunk)
             for kind, chunk in splitter.flush():
-                yield _emit(kind, chunk)
+                yield ev.token(chunk) if kind == "token" else {"type": "reasoning", "cycle": cycle, "text": chunk}
             yield ev.metrics_from_result(event["result"])
     if drain:
         for extra in drain():
