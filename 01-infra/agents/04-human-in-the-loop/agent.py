@@ -168,6 +168,8 @@ async def invoke(payload, context=None):
                 yield json.dumps(ev.metrics_from_result(result))
     except Exception:
         logger.exception("Agent invocation failed")
+        global _agent
+        _agent = None
         yield json.dumps(ev.error("The agent hit an error. Please try again."))
     yield json.dumps(ev.done())
 
