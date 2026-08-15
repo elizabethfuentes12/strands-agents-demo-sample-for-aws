@@ -371,7 +371,7 @@ export default function App() {
   )
   const MODEL_IDS = {
     nova: 'us.amazon.nova-pro-v1:0',
-    claude: 'global.anthropic.claude-sonnet-4-6',
+    claude: 'us.anthropic.claude-sonnet-4-6',
   }
   const [authed, setAuthed] = useState(!!getToken())
   // Initial demo/robots view come from the URL (e.g. /agent_loop, /hooks, /robots).
