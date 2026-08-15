@@ -1,8 +1,9 @@
 """Model factory for demo agents.
 
-Nova Pro uses bedrock-runtime (default endpoint).
-Claude Haiku 4.5 uses the global. cross-region inference profile and enables
-interleaved thinking so the reasoning is visible in the Insights panel.
+Nova Pro uses the us. cross-region inference profile (US regions only).
+Claude Sonnet 4.6 also uses the us. profile with interleaved thinking enabled
+so reasoning is visible in the Insights panel. The us. prefix keeps routing
+within US regions where the interleaved-thinking beta is supported.
 """
 import os
 
@@ -10,11 +11,11 @@ from strands.models import BedrockModel
 
 REGION = os.environ.get("AWS_REGION", "us-east-1")
 
-# Default model: Nova Pro via bedrock-runtime (env-overridable at deploy time).
+# Default model: Nova Pro via us. cross-region inference profile.
 DEFAULT_MODEL_ID = os.environ.get("MODEL_ID", "us.amazon.nova-pro-v1:0")
 
-# Claude Sonnet 4.6 — global inference profile, no account activation needed.
-CLAUDE_MODEL_ID = "global.anthropic.claude-sonnet-4-6"
+# Claude Sonnet 4.6 — us. inference profile so interleaved thinking beta works.
+CLAUDE_MODEL_ID = "us.anthropic.claude-sonnet-4-6"
 
 # Allowlist of model identifiers the browser may request.
 ALLOWED_MODEL_IDS = {DEFAULT_MODEL_ID, CLAUDE_MODEL_ID}
@@ -38,7 +39,7 @@ def make_bedrock_model(model_id: str) -> BedrockModel:
             model_id=model_id,
             additional_request_fields={
                 "anthropic_beta": ["interleaved-thinking-2025-05-14"],
-                "thinking": {"type": "enabled", "budget_tokens": 2000},
+                "thinking": {"type": "enabled", "budget_tokens": 8000},
             },
         )
     return BedrockModel(model_id=model_id)
